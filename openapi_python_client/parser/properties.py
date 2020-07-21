@@ -516,8 +516,20 @@ def _property_from_data(
             inner_properties=sub_properties,
             nullable=data.nullable,
         )
+    if data.allOf:
+        sub_properties: List[Property] = []
+        for sub_prop_data in data.allOf:
+            sub_prop = property_from_data(name=name, required=required and (not data.nullable), data=sub_prop_data)
+            if isinstance(sub_prop, PropertyError):
+                return PropertyError(detail=f"Invalid property in union {name}", data=sub_prop_data)
+            sub_properties.append(sub_prop)
+        return UnionProperty(
+            name=name, required=required, default=data.default, inner_properties=sub_properties, nullable=data.nullable,
+        )
     if not data.type:
-        return PropertyError(data=data, detail="Schemas must either have one of enum, anyOf, or type defined.")
+        return PropertyError(
+            data=data, detail="Schemas must either have one of enum, anyOf, oneOf, allOf, or type defined."
+        )
     if data.type == "string":
         return _string_based_property(name=name, required=required, data=data)
     elif data.type == "number":

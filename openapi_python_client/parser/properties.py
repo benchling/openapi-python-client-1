@@ -284,7 +284,7 @@ _existing_enums: Dict[str, EnumProperty] = {}
 class EnumProperty(Property):
     """ A property that should use an enum """
 
-    values: Dict[str, str]
+    values: Dict[str, Any]
     reference: Reference = field(init=False)
     title: InitVar[str]
 
@@ -333,19 +333,21 @@ class EnumProperty(Property):
         return imports
 
     @staticmethod
-    def values_from_list(values: List[str]) -> Dict[str, str]:
+    def values_from_list(values: List[Any]) -> Dict[str, Any]:
         """ Convert a list of values into dict of {name: value} """
         output: Dict[str, str] = {}
 
         for i, value in enumerate(values):
-            if value[0].isalpha():
+            if type(value) is str and value[0].isalpha():
                 key = value.upper()
             else:
                 key = f"VALUE_{i}"
             if key in output:
                 raise ValueError(f"Duplicate key {key} in Enum")
             sanitized_key = utils.fix_keywords(utils.sanitize(key))
-            output[sanitized_key] = utils.remove_string_escapes(value)
+            if type(value) is str:
+                value = utils.remove_string_escapes(value)
+            output[sanitized_key] = repr(value)
 
         return output
 

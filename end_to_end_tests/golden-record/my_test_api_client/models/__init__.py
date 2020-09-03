@@ -5,4 +5,5 @@ from .an_enum import AnEnum
 from .body_upload_file_tests_upload_post import BodyUploadFileTestsUploadPost
 from .different_enum import DifferentEnum
 from .http_validation_error import HTTPValidationError
+from .integer_enum import IntegerEnum
 from .validation_error import ValidationError

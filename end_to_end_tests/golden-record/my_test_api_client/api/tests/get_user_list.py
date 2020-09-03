@@ -8,6 +8,7 @@ from ...client import AuthenticatedClient, Client
 from ...models.a_model import AModel
 from ...models.an_enum import AnEnum
 from ...models.http_validation_error import HTTPValidationError
+from ...models.integer_enum import IntegerEnum
 from ...types import Response
 
 
@@ -16,6 +17,7 @@ def _get_kwargs(
     client: Client,
     an_enum_value: List[AnEnum],
     some_date: Union[datetime.date, datetime.datetime],
+    some_integer: IntegerEnum,
 ) -> Dict[str, Any]:
     url = "{}/tests/".format(client.base_url)
 
@@ -33,9 +35,12 @@ def _get_kwargs(
     else:
         json_some_date = some_date.isoformat()
 
+    json_some_integer = some_integer.value
+
     params: Dict[str, Any] = {
         "an_enum_value": json_an_enum_value,
         "some_date": json_some_date,
+        "some_integer": json_some_integer,
     }
 
     return {
@@ -69,11 +74,13 @@ def sync_detailed(
     client: Client,
     an_enum_value: List[AnEnum],
     some_date: Union[datetime.date, datetime.datetime],
+    some_integer: IntegerEnum,
 ) -> Response[Union[List[AModel], HTTPValidationError]]:
     kwargs = _get_kwargs(
         client=client,
         an_enum_value=an_enum_value,
         some_date=some_date,
+        some_integer=some_integer,
     )
 
     response = httpx.get(
@@ -88,6 +95,7 @@ def sync(
     client: Client,
     an_enum_value: List[AnEnum],
     some_date: Union[datetime.date, datetime.datetime],
+    some_integer: IntegerEnum,
 ) -> Optional[Union[List[AModel], HTTPValidationError]]:
     """ Get a list of things  """
 
@@ -95,6 +103,7 @@ def sync(
         client=client,
         an_enum_value=an_enum_value,
         some_date=some_date,
+        some_integer=some_integer,
     ).parsed
 
 
@@ -103,11 +112,13 @@ async def asyncio_detailed(
     client: Client,
     an_enum_value: List[AnEnum],
     some_date: Union[datetime.date, datetime.datetime],
+    some_integer: IntegerEnum,
 ) -> Response[Union[List[AModel], HTTPValidationError]]:
     kwargs = _get_kwargs(
         client=client,
         an_enum_value=an_enum_value,
         some_date=some_date,
+        some_integer=some_integer,
     )
 
     async with httpx.AsyncClient() as _client:
@@ -121,6 +132,7 @@ async def asyncio(
     client: Client,
     an_enum_value: List[AnEnum],
     some_date: Union[datetime.date, datetime.datetime],
+    some_integer: IntegerEnum,
 ) -> Optional[Union[List[AModel], HTTPValidationError]]:
     """ Get a list of things  """
 
@@ -129,5 +141,6 @@ async def asyncio(
             client=client,
             an_enum_value=an_enum_value,
             some_date=some_date,
+            some_integer=some_integer,
         )
     ).parsed

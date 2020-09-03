@@ -427,15 +427,23 @@ class TestEnumProperty:
     def test_values_from_list(self):
         from openapi_python_client.parser.properties import EnumProperty
 
-        data = ["abc", "123", "a23", "1bc"]
+        string_data = ["abc", "123", "a23", "1bc"]
+        integer_data = [1, 2, 345]
 
-        result = EnumProperty.values_from_list(data)
+        string_result = EnumProperty.values_from_list(string_data)
+        integer_result = EnumProperty.values_from_list(integer_data)
 
-        assert result == {
-            "ABC": "abc",
-            "VALUE_1": "123",
-            "A23": "a23",
-            "VALUE_3": "1bc",
+        assert string_result == {
+            "ABC": "'abc'",
+            "VALUE_1": "'123'",
+            "A23": "'a23'",
+            "VALUE_3": "'1bc'",
+        }
+
+        assert integer_result == {
+            "VALUE_0": "1",
+            "VALUE_1": "2",
+            "VALUE_2": "345"
         }
 
     def test_values_from_list_duplicate(self):

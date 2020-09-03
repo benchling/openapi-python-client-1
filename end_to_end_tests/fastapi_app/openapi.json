@@ -64,6 +64,14 @@
                         },
                         "name": "some_date",
                         "in": "query"
+                    },
+                    {
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/components/schemas/IntegerEnum"
+                        },
+                        "name": "some_integer",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -602,6 +610,15 @@
                         }
                     }
                 }
+            },
+            "IntegerEnum": {
+                "title": "IntegerEnum",
+                "enum": [
+                    1,
+                    2,
+                    -3
+                ],
+                "description": "An integer enum."
             },
             "ValidationError": {
                 "title": "ValidationError",

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from .. import schema as oai
 from .. import utils
 from .errors import GeneratorError, ParseError, PropertyError
-from .properties import EnumProperty, Property, property_from_data
+from .properties import EnumProperty, Property, RefProperty, property_from_data
 from .reference import Reference
 from .responses import ListRefResponse, RefResponse, Response, response_from_data
 
@@ -239,6 +239,24 @@ class Model:
         relative_imports: Set[str] = set()
 
         ref = Reference.from_ref(data.title or name)
+
+        for sub_prop_data in data.allOf or []:
+            p = property_from_data(name=name, required=data.required, data=sub_prop_data)
+            if isinstance(p, RefProperty):
+                ref.mixins.add(p.reference.class_name)
+                relative_imports.update(p.get_imports(prefix=""))
+            else:
+                for key, value in (sub_prop_data.properties or {}).items():
+                    sub_required_set = set(data.required or [])
+                    sub_required = key in sub_required_set
+                    sub_p = property_from_data(name=key, required=sub_required, data=value)
+                    if isinstance(sub_p, ParseError):
+                        return sub_p
+                    if sub_required:
+                        required_properties.append(sub_p)
+                    else:
+                        optional_properties.append(sub_p)
+                    relative_imports.update(sub_p.get_imports(prefix=""))
 
         for key, value in (data.properties or {}).items():
             required = key in required_set

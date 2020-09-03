@@ -338,14 +338,14 @@ class EnumProperty(Property):
         output: Dict[str, str] = {}
 
         for i, value in enumerate(values):
-            if type(value) is str and value[0].isalpha():
+            if isinstance(value, str) and value[0].isalpha():
                 key = value.upper()
             else:
                 key = f"VALUE_{i}"
             if key in output:
                 raise ValueError(f"Duplicate key {key} in Enum")
             sanitized_key = utils.fix_keywords(utils.sanitize(key))
-            if type(value) is str:
+            if isinstance(value, str):
                 value = utils.remove_string_escapes(value)
             output[sanitized_key] = repr(value)
 

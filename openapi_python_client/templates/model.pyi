@@ -34,10 +34,10 @@ class {{ model.reference.class_name }}:
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> {{ model.reference.class_name }}:
 {% for property in model.required_properties + model.optional_properties %}
-    {% if property.required %}
-        {% set property_source = 'd["' + property.name + '"]' %}
-    {% else %}
+    {% if property.nullable or not property.required %}
         {% set property_source = 'd.get("' + property.name + '")' %}
+    {% else %}
+        {% set property_source = 'd["' + property.name + '"]' %}
     {% endif %}
     {% if property.template %}
         {% from "property_templates/" + property.template import construct %}

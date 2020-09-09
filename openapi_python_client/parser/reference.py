@@ -1,7 +1,7 @@
 """ A Reference is ultimately a Class which will be in models, usually defined in a body input or return type """
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Any, Dict, Set
 
 from .. import utils
 

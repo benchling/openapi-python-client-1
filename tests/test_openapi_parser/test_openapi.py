@@ -71,21 +71,23 @@ class TestModel:
     def test_from_data(self, mocker):
         from openapi_python_client.parser.properties import Property
 
+        required_property = mocker.MagicMock(autospec=Property)
+        required_property.allOf = None
+        required_imports = mocker.MagicMock()
+        required_property.get_imports.return_value = {required_imports}
+        optional_property = mocker.MagicMock(autospec=Property)
+        optional_property.allOf = None
+        optional_imports = mocker.MagicMock()
+        optional_property.get_imports.return_value = {optional_imports}
         in_data = oai.Schema.construct(
             title=mocker.MagicMock(),
             description=mocker.MagicMock(),
             required=["RequiredEnum"],
             properties={
-                "RequiredEnum": mocker.MagicMock(),
-                "OptionalDateTime": mocker.MagicMock(),
+                "RequiredEnum": required_property,
+                "OptionalDateTime": optional_property,
             },
         )
-        required_property = mocker.MagicMock(autospec=Property)
-        required_imports = mocker.MagicMock()
-        required_property.get_imports.return_value = {required_imports}
-        optional_property = mocker.MagicMock(autospec=Property)
-        optional_imports = mocker.MagicMock()
-        optional_property.get_imports.return_value = {optional_imports}
         property_from_data = mocker.patch(
             f"{MODULE_NAME}.property_from_data",
             side_effect=[required_property, optional_property],
@@ -107,6 +109,7 @@ class TestModel:
         optional_property.get_imports.assert_called_once_with(prefix="..")
         assert result == Model(
             reference=from_ref(),
+            references=[],
             required_properties=[required_property],
             optional_properties=[optional_property],
             relative_imports={
@@ -117,14 +120,17 @@ class TestModel:
         )
 
     def test_from_data_property_parse_error(self, mocker):
+        from openapi_python_client.parser.properties import Property
+
+        required_property = mocker.MagicMock(autospec=Property)
+        required_property.allOf = None
+        optional_property = mocker.MagicMock(autospec=Property)
+        optional_property.allOf = None
         in_data = oai.Schema.construct(
             title=mocker.MagicMock(),
             description=mocker.MagicMock(),
             required=["RequiredEnum"],
-            properties={
-                "RequiredEnum": mocker.MagicMock(),
-                "OptionalDateTime": mocker.MagicMock(),
-            },
+            properties={"RequiredEnum": required_property, "OptionalDateTime": optional_property},
         )
         parse_error = ParseError(data=mocker.MagicMock())
         property_from_data = mocker.patch(

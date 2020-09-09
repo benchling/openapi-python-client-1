@@ -229,7 +229,6 @@ class Model:
     def resolve_references(self, schemas):
         required_set = set()
         props = {}
-        print(self.reference.class_name, self.references)
         while self.references:
             reference = self.references.pop()
             prop = schemas[Reference.from_ref(reference.ref).class_name]
@@ -254,7 +253,7 @@ class Model:
                     self.optional_properties.pop(p)
             elif p not in self.optional_properties:
                 self.optional_properties.append(p)
-            self.relative_imports.update(p.get_imports(prefix=""))
+            self.relative_imports.update(p.get_imports(prefix=".."))
 
         return self.required_properties + self.optional_properties
 

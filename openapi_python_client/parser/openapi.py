@@ -249,9 +249,9 @@ class Model:
                 return p
             if required:
                 self.required_properties.append(p)
-                if p in self.optional_properties:
-                    self.optional_properties.remove(p)
-            elif p not in self.optional_properties:
+                # Remove the optional version
+                self.optional_properties = [op for op in self.optional_properties if op.name != p.name]
+            elif not any(ep for ep in (self.optional_properties + self.required_properties) if ep.name == p.name):
                 self.optional_properties.append(p)
             self.relative_imports.update(p.get_imports(prefix=".."))
 

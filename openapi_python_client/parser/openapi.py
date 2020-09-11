@@ -250,7 +250,7 @@ class Model:
             if required:
                 self.required_properties.append(p)
                 if p in self.optional_properties:
-                    self.optional_properties.pop(p)
+                    self.optional_properties.remove(p)
             elif p not in self.optional_properties:
                 self.optional_properties.append(p)
             self.relative_imports.update(p.get_imports(prefix=".."))

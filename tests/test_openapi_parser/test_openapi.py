@@ -150,6 +150,57 @@ class TestModel:
 
         assert result == parse_error
 
+    def test_resolve_references(self, mocker):
+
+        schemas = {
+            "RefA": oai.Schema.construct(
+                title=mocker.MagicMock(),
+                description=mocker.MagicMock(),
+                required=["String"],
+                properties={
+                    "String": oai.Schema.construct(type="string"),
+                    "Enum": oai.Schema.construct(type="string", enum=["aValue"]),
+                    "DateTime": oai.Schema.construct(type="string", format="date-time"),
+                },
+            ),
+            "RefB": oai.Schema.construct(
+                title=mocker.MagicMock(),
+                description=mocker.MagicMock(),
+                required=["DateTime"],
+                properties={
+                    "Int": oai.Schema.construct(type="integer"),
+                    "DateTime": oai.Schema.construct(type="string", format="date-time"),
+                    "Float": oai.Schema.construct(type="number", format="float")
+                },
+            ),
+        }
+
+        model_schema = oai.Schema.construct(
+            allOf=[
+                oai.Reference.construct(ref="#/components/schemas/RefA"),
+                oai.Reference.construct(ref="#/components/schemas/RefB"),
+                oai.Schema.construct(
+                    title=mocker.MagicMock(),
+                    description=mocker.MagicMock(),
+                    required=["Float"],
+                    properties={
+                        "String": oai.Schema.construct(type="string"),
+                        "Float": oai.Schema.construct(type="number", format="float"),
+                    },
+                ),
+            ]
+        )
+
+        from openapi_python_client.parser.openapi import Model
+
+        model = Model.from_data(data=model_schema, name="Model")
+        model.resolve_references(schemas)
+        print(f"{model=}")
+        assert sorted(p.name for p in model.required_properties) == ["DateTime", "Float", "String"]
+        assert all(p.required for p in model.required_properties)
+        assert sorted(p.name for p in model.optional_properties) == ["Enum", "Int"]
+        assert all(not p.required for p in model.optional_properties)
+
 
 class TestSchemas:
     def test_build(self, mocker):
@@ -165,6 +216,8 @@ class TestSchemas:
         result = Schemas.build(schemas=in_data)
 
         from_data.assert_has_calls([mocker.call(data=value, name=name) for (name, value) in in_data.items()])
+        schema_1.resolve_references.assert_called_once_with(in_data)
+        schema_2.resolve_references.assert_called_once_with(in_data)
         assert result == Schemas(
             models={
                 schema_1.reference.class_name: schema_1,

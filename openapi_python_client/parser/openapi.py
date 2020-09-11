@@ -281,6 +281,7 @@ class Model:
                     references += [sub_prop]
                 else:
                     all_props.update(sub_prop.properties)
+                    required_set.update(sub_prop.required or [])
 
         for key, value in all_props.items():
             required = key in required_set

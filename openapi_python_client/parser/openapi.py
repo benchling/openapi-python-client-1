@@ -220,7 +220,7 @@ class Model:
     """
 
     reference: Reference
-    references: List[Reference]
+    references: List[oai.Reference]
     required_properties: List[Property]
     optional_properties: List[Property]
     description: str
@@ -229,7 +229,6 @@ class Model:
     def resolve_references(self, schemas):
         required_set = set()
         props = {}
-        print(self.reference.class_name, self.references)
         while self.references:
             reference = self.references.pop()
             prop = schemas[Reference.from_ref(reference.ref).class_name]
@@ -250,11 +249,11 @@ class Model:
                 return p
             if required:
                 self.required_properties.append(p)
-                if p in self.optional_properties:
-                    self.optional_properties.pop(p)
-            elif p not in self.optional_properties:
+                # Remove the optional version
+                self.optional_properties = [op for op in self.optional_properties if op.name != p.name]
+            elif not any(ep for ep in (self.optional_properties + self.required_properties) if ep.name == p.name):
                 self.optional_properties.append(p)
-            self.relative_imports.update(p.get_imports(prefix=""))
+            self.relative_imports.update(p.get_imports(prefix=".."))
 
         return self.required_properties + self.optional_properties
 
@@ -282,6 +281,7 @@ class Model:
                     references += [sub_prop]
                 else:
                     all_props.update(sub_prop.properties)
+                    required_set.update(sub_prop.required or [])
 
         for key, value in all_props.items():
             required = key in required_set

@@ -226,7 +226,7 @@ class Model:
     description: str
     relative_imports: Set[str]
 
-    def resolve_references(self, schemas):
+    def resolve_references(self, schemas) -> Union[List[Property], ParseError]:
         required_set = set()
         props = {}
         while self.references:

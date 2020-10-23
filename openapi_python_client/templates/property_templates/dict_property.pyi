@@ -12,6 +12,9 @@ if {{ source }} is not None:
 {% if property.required %}
 {{ destination }} = {{ source }}
 {% else %}
-{{ destination }} = {{ source }} if {{ source }} else None
+if {{ source }} is UNSET:
+    {{ destination }} = UNSET
+else:
+    {{ destination }} = {{ source }} if {{ source }} else None
 {% endif %}
 {% endmacro %}

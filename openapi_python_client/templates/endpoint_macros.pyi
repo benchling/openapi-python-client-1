@@ -80,7 +80,7 @@ client: Client,
 {% endif %}
 {# path parameters #}
 {% for parameter in endpoint.path_parameters %}
-{{ parameter.to_string() }},
+{{parameter.to_query_method_arg()}},
 {% endfor %}
 {# Form data if any #}
 {% if endpoint.form_body_reference %}
@@ -96,10 +96,10 @@ json_body: {{ endpoint.json_body.get_type_string() }},
 {% endif %}
 {# query parameters #}
 {% for parameter in endpoint.query_parameters %}
-{{ parameter.to_string() }},
+{{parameter.to_query_method_arg()}},
 {% endfor %}
 {% for parameter in endpoint.header_parameters %}
-{{ parameter.to_string() }},
+{{ parameter.to_query_method_arg() }},
 {% endfor %}
 {% endmacro %}
 

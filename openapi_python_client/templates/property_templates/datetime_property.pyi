@@ -12,6 +12,9 @@ if {{ source }} is not None:
 {% if property.required %}
 {{ destination }} = {{ source }}.isoformat()
 {% else %}
-{{ destination }} = {{ source }}.isoformat() if {{ source }} else None
+if {{ source }} is UNSET:
+    {{ destination }} = UNSET
+else:
+    {{ destination }} = {{ source }}.isoformat() if {{ source }} else None
 {% endif %}
 {% endmacro %}

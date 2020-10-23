@@ -25,6 +25,8 @@ def _parse_{{ property.python_name }}(data: Dict[str, Any]) -> {{ property.get_t
 {% if not property.required %}
 if {{ source }} is None:
     {{ destination }}: {{ property.get_type_string() }} = None
+elif {{ source }} is UNSET:
+    {{ destination }} = UNSET
 {% endif %}
 {% for inner_property in property.inner_properties %}
     {% if loop.first and property.required %}{# No if None statement before this #}
@@ -36,7 +38,7 @@ else:
     {% endif %}
 {% if inner_property.template %}
 {% from "property_templates/" + inner_property.template import transform %}
-    {{ transform(inner_property, source, destination) | indent(8) }}
+    {{ transform(inner_property, source, destination) | indent(4) }}
 {% else %}
     {{ destination }} = {{ source }}
 {% endif %}

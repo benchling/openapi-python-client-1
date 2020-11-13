@@ -291,7 +291,7 @@ class Model:
             for sub_prop in data.allOf:
                 if isinstance(sub_prop, oai.Reference):
                     references += [sub_prop]
-                elif sub_prop.properties:
+                else:
                     all_props.update(sub_prop.properties)
                     required_set.update(sub_prop.required or [])
 

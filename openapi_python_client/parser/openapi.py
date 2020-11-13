@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from collections.abc import Iterable
 from copy import deepcopy
 from dataclasses import dataclass, field
 from enum import Enum
@@ -232,42 +229,10 @@ class Model:
     """
 
     reference: Reference
-    references: List[oai.Reference]
     required_properties: List[Property]
     optional_properties: List[Property]
     description: str
     relative_imports: Set[str]
-
-    def resolve_references(self, schemas) -> Union[List[Property], ParseError]:
-        required_set = set()
-        props = {}
-        while self.references:
-            reference = self.references.pop()
-            prop = schemas[Reference.from_ref(reference.ref).class_name]
-            props.update(prop.properties or {})
-            for sub_prop in prop.allOf or []:
-                if isinstance(sub_prop, oai.Reference):
-                    self.references += [sub_prop]
-                else:
-                    props.update(sub_prop.properties)
-            if isinstance(prop.required, Iterable):
-                for sub_prop_name in prop.required:
-                    required_set.add(sub_prop_name)
-
-        for key, value in (props or {}).items():
-            required = key in required_set
-            p = property_from_data(name=key, required=required, data=value)
-            if isinstance(p, ParseError):
-                return p
-            if required:
-                self.required_properties.append(p)
-                # Remove the optional version
-                self.optional_properties = [op for op in self.optional_properties if op.name != p.name]
-            elif not any(ep for ep in (self.optional_properties + self.required_properties) if ep.name == p.name):
-                self.optional_properties.append(p)
-            self.relative_imports.update(p.get_imports(prefix=".."))
-
-        return self.required_properties + self.optional_properties
 
     @staticmethod
     def from_data(*, data: oai.Schema, name: str) -> Union["Model", ParseError]:
@@ -282,24 +247,11 @@ class Model:
         required_properties: List[Property] = []
         optional_properties: List[Property] = []
         relative_imports: Set[str] = set()
-        references: List[Reference] = []
 
         ref = Reference.from_ref(data.title or name)
-        all_props = data.properties or {}
 
-        if not isinstance(data, oai.Reference) and data.allOf:
-            for sub_prop in data.allOf:
-                if isinstance(sub_prop, oai.Reference):
-                    references += [sub_prop]
-                else:
-                    all_props.update(sub_prop.properties)
-                    required_set.update(sub_prop.required or [])
-
-        for key, value in all_props.items():
+        for key, value in (data.properties or {}).items():
             required = key in required_set
-            if not isinstance(value, oai.Reference) and value.allOf:
-                # resolved later
-                continue
             p = property_from_data(name=key, required=required, data=value)
             if isinstance(p, ParseError):
                 return p
@@ -311,7 +263,6 @@ class Model:
 
         model = Model(
             reference=ref,
-            references=references,
             required_properties=required_properties,
             optional_properties=optional_properties,
             relative_imports=relative_imports,
@@ -350,8 +301,6 @@ class Schemas:
                 result.errors.append(s)
             else:
                 result.models[s.reference.class_name] = s
-        for model in result.models.values():
-            model.resolve_references(schemas)
         return result
 
 

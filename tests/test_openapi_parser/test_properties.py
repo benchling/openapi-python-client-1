@@ -43,7 +43,7 @@ class TestProperty:
 
         assert p.to_string() == f"{snake_case(name)}: {get_type_string()}"
         p.required = False
-        assert p.to_string() == f"{snake_case(name)}: {get_type_string()} = cast(None, UNSET)"
+        assert p.to_string() == f"{snake_case(name)}: {get_type_string()} = None"
 
         p.default = "TEST"
         assert p.to_string() == f"{snake_case(name)}: {get_type_string()} = TEST"
@@ -57,26 +57,7 @@ class TestProperty:
         assert p.get_imports(prefix="") == set()
 
         p.required = False
-        assert p.get_imports(prefix="") == {
-            "from types import UNSET",
-            "from typing import Optional",
-            "from typing import cast",
-        }
-
-    def test_to_query_method_arg(self, mocker):
-        from openapi_python_client.parser.properties import Property
-
-        name = mocker.MagicMock()
-        snake_case = mocker.patch("openapi_python_client.utils.snake_case")
-        p = Property(name=name, required=True, default=None, nullable=False)
-        get_type_string = mocker.patch.object(p, "get_type_string")
-
-        assert p.to_query_method_arg() == f"{snake_case(name)}: {get_type_string()}"
-        p.required = False
-        assert p.to_query_method_arg() == f"{snake_case(name)}: {get_type_string()} = None"
-
-        p.default = "TEST"
-        assert p.to_query_method_arg() == f"{snake_case(name)}: {get_type_string()} = TEST"
+        assert p.get_imports(prefix="") == {"from typing import Optional"}
 
     def test__validate_default(self):
         from openapi_python_client.parser.properties import Property

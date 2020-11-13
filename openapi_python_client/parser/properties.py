@@ -64,27 +64,11 @@ class Property:
             back to the root of the generated client.
         """
         if self.nullable or not self.required:
-            return {"from typing import Optional",
-                    "from typing import cast",
-                    f"from {prefix}types import UNSET"}
+            return {"from typing import Optional"}
         return set()
 
     def to_string(self) -> str:
         """ How this should be declared in a dataclass """
-        if self.default:
-            default = self.default
-        elif not self.required:
-            default = "cast(None, UNSET)"
-        else:
-            default = None
-
-        if default is not None:
-            return f"{self.python_name}: {self.get_type_string()} = {default}"
-        else:
-            return f"{self.python_name}: {self.get_type_string()}"
-
-    def to_query_method_arg(self) -> str:
-        """ How this should be declared in a query string """
         if self.default:
             default = self.default
         elif not self.required:
@@ -93,9 +77,10 @@ class Property:
             default = None
 
         if default is not None:
-            return f"{self.python_name}: {self.get_type_string()} = {default}"
+            return f"{self.python_name}: {self.get_type_string()} = {self.default}"
         else:
             return f"{self.python_name}: {self.get_type_string()}"
+
 
 @dataclass
 class StringProperty(Property):

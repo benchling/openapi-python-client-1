@@ -1,5 +1,3 @@
-from openapi_python_client.templates.types import UNSET
-
 {% macro construct(property, source) %}
 {% set inner_property = property.inner_property %}
 {% if inner_property.template %}
@@ -38,8 +36,6 @@ for {{ inner_source }} in {{ source }}:
 {% if not property.required %}
 if {{ source }} is None:
     {{ destination }} = None
-elif {{ source }} is UNSET:
-    {{ destination }} = UNSET
 else:
     {{ _transform(property, source, destination) | indent(4) }}
 {% else %}

@@ -24,17 +24,11 @@ class {{ model.reference.class_name }}:
         {% endif %}
         {% endfor %}
 
-        properties: Dict[str, Any] = dict()
-
-        {% for property in model.required_properties + model.optional_properties %}
-        {% if not property.required %}
-        if {{property.python_name}} is not UNSET:
-            properties["{{ property.name }}"] = {{ property.python_name }}
-        {% else %}
-        properties["{{ property.name }}"] = {{ property.python_name }}
-        {% endif %}
-        {% endfor %}
-        return properties
+        return {
+            {% for property in model.required_properties + model.optional_properties %}
+            "{{ property.name }}": {{ property.python_name }},
+            {% endfor %}
+        }
 
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "{{ model.reference.class_name }}":

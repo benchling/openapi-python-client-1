@@ -7,9 +7,6 @@
 {% if property.required %}
 {{ destination }} = {{ source }}.to_tuple()
 {% else %}
-if {{ source }} is UNSET:
-    {{ destination }} = UNSET
-else:
-    {{ destination }} = {{ source }}.to_tuple() if {{ source }} else None
+{{ destination }} = {{ source }}.to_tuple() if {{ source }} else None
 {% endif %}
 {% endmacro %}

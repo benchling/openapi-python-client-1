@@ -1,24 +1,24 @@
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, Optional, Union
 
 import httpx
 
 from ...client import Client
 from ...models.body_upload_file_tests_upload_post import BodyUploadFileTestsUploadPost
 from ...models.http_validation_error import HTTPValidationError
-from ...types import Response
+from ...types import UNSET, Response, Unset
 
 
 def _get_kwargs(
     *,
     client: Client,
     multipart_data: BodyUploadFileTestsUploadPost,
-    keep_alive: Optional[bool] = None,
+    keep_alive: Union[Unset, bool] = UNSET,
 ) -> Dict[str, Any]:
     url = "{}/tests/upload".format(client.base_url)
 
     headers: Dict[str, Any] = client.get_headers()
 
-    if keep_alive is not None:
+    if keep_alive is not UNSET:
         headers["keep-alive"] = keep_alive
 
     return {
@@ -32,9 +32,13 @@ def _get_kwargs(
 
 def _parse_response(*, response: httpx.Response) -> Optional[Union[None, HTTPValidationError]]:
     if response.status_code == 200:
-        return None
+        response_200 = None
+
+        return response_200
     if response.status_code == 422:
-        return HTTPValidationError.from_dict(cast(Dict[str, Any], response.json()))
+        response_422 = HTTPValidationError.from_dict(response.json())
+
+        return response_422
     return None
 
 
@@ -51,7 +55,7 @@ def sync_detailed(
     *,
     client: Client,
     multipart_data: BodyUploadFileTestsUploadPost,
-    keep_alive: Optional[bool] = None,
+    keep_alive: Union[Unset, bool] = UNSET,
 ) -> Response[Union[None, HTTPValidationError]]:
     kwargs = _get_kwargs(
         client=client,
@@ -70,7 +74,7 @@ def sync(
     *,
     client: Client,
     multipart_data: BodyUploadFileTestsUploadPost,
-    keep_alive: Optional[bool] = None,
+    keep_alive: Union[Unset, bool] = UNSET,
 ) -> Optional[Union[None, HTTPValidationError]]:
     """ Upload a file  """
 
@@ -85,7 +89,7 @@ async def asyncio_detailed(
     *,
     client: Client,
     multipart_data: BodyUploadFileTestsUploadPost,
-    keep_alive: Optional[bool] = None,
+    keep_alive: Union[Unset, bool] = UNSET,
 ) -> Response[Union[None, HTTPValidationError]]:
     kwargs = _get_kwargs(
         client=client,
@@ -103,7 +107,7 @@ async def asyncio(
     *,
     client: Client,
     multipart_data: BodyUploadFileTestsUploadPost,
-    keep_alive: Optional[bool] = None,
+    keep_alive: Union[Unset, bool] = UNSET,
 ) -> Optional[Union[None, HTTPValidationError]]:
     """ Upload a file  """
 

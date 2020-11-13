@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "openapi-python-client"
-version = "0.6.1"
+version = "0.7.0-rc.1"
 description = "Generate modern Python clients from OpenAPI"
 repository = "https://github.com/triaxtec/openapi-python-client"
 license = "MIT"
@@ -32,7 +32,7 @@ importlib_metadata = {version = "^2.0.0", python = "<3.8"}
 pydantic = "^1.6.1"
 attrs = "^20.1.0"
 python-dateutil = "^2.8.1"
-httpx = "^0.15.4"
+httpx = ">=0.15.4,<0.17.0"
 autoflake = "^1.4"
 
 [tool.poetry.scripts]
@@ -45,7 +45,6 @@ mypy = "*"
 taskipy = "*"
 safety = "*"
 pytest-cov = "*"
-fastapi = "*"
 python-multipart = "*"
 flake8 = "*"
 
@@ -56,14 +55,14 @@ isort .\
  && flake8 openapi_python_client\
  && safety check --bare\
  && mypy openapi_python_client\
- && pytest --cov openapi_python_client tests\
+ && pytest --cov openapi_python_client tests --cov-report=term-missing\
 """
-openapi = "python -m end_to_end_tests.fastapi_app"
-gr = "python -m end_to_end_tests.regen_golden_record"
-e2e = "pytest openapi_python_client end_to_end_tests"
-ogre = """
-task openapi\
-&& task gr\
+regen = "python -m end_to_end_tests.regen_golden_record"
+regen_custom = "python -m end_to_end_tests.regen_golden_record custom"
+e2e = "pytest openapi_python_client end_to_end_tests/test_end_to_end.py"
+re = """
+task regen\
+&& task regen_custom\
 && task e2e\
 """
 
@@ -78,6 +77,8 @@ exclude = '''
     | \.mypy_cache
     | openapi_python_client/templates
     | tests/test_templates
+    | end_to_end_tests/test_custom_templates
+    | end_to_end_tests/golden-record-custom
   )/
 )
 '''

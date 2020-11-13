@@ -1,8 +1,5 @@
-from pydantic import ValidationError
-from pydantic.error_wrappers import ErrorWrapper
-
 import openapi_python_client.schema as oai
-from openapi_python_client import GeneratorError, utils
+from openapi_python_client import GeneratorError
 from openapi_python_client.parser.errors import ParseError
 
 MODULE_NAME = "openapi_python_client.parser.openapi"
@@ -10,39 +7,40 @@ MODULE_NAME = "openapi_python_client.parser.openapi"
 
 class TestGeneratorData:
     def test_from_dict(self, mocker):
-        Schemas = mocker.patch(f"{MODULE_NAME}.Schemas")
+        build_schemas = mocker.patch(f"{MODULE_NAME}.build_schemas")
         EndpointCollection = mocker.patch(f"{MODULE_NAME}.EndpointCollection")
+        schemas = mocker.MagicMock()
+        endpoints_collections_by_tag = mocker.MagicMock()
+        EndpointCollection.from_data.return_value = (endpoints_collections_by_tag, schemas)
         OpenAPI = mocker.patch(f"{MODULE_NAME}.oai.OpenAPI")
         openapi = OpenAPI.parse_obj.return_value
 
         in_dict = mocker.MagicMock()
-        get_all_enums = mocker.patch(f"{MODULE_NAME}.EnumProperty.get_all_enums")
 
         from openapi_python_client.parser.openapi import GeneratorData
 
         generator_data = GeneratorData.from_dict(in_dict)
 
         OpenAPI.parse_obj.assert_called_once_with(in_dict)
-        Schemas.build.assert_called_once_with(schemas=openapi.components.schemas)
-        EndpointCollection.from_data.assert_called_once_with(data=openapi.paths)
-        get_all_enums.assert_called_once_with()
+        build_schemas.assert_called_once_with(components=openapi.components.schemas)
+        EndpointCollection.from_data.assert_called_once_with(data=openapi.paths, schemas=build_schemas.return_value)
         assert generator_data == GeneratorData(
             title=openapi.info.title,
             description=openapi.info.description,
             version=openapi.info.version,
-            endpoint_collections_by_tag=EndpointCollection.from_data.return_value,
-            schemas=Schemas.build.return_value,
-            enums=get_all_enums.return_value,
+            endpoint_collections_by_tag=endpoints_collections_by_tag,
+            errors=schemas.errors,
+            models=schemas.models,
+            enums=schemas.enums,
         )
 
         # Test no components
         openapi.components = None
-        Schemas.build.reset_mock()
+        build_schemas.reset_mock()
 
-        generator_data = GeneratorData.from_dict(in_dict)
+        GeneratorData.from_dict(in_dict)
 
-        Schemas.build.assert_not_called()
-        assert generator_data.schemas == Schemas()
+        build_schemas.assert_not_called()
 
     def test_from_dict_invalid_schema(self, mocker):
         Schemas = mocker.patch(f"{MODULE_NAME}.Schemas")
@@ -65,127 +63,6 @@ class TestGeneratorData:
         )
         Schemas.build.assert_not_called()
         Schemas.assert_not_called()
-
-
-class TestModel:
-    def test_from_data(self, mocker):
-        from openapi_python_client.parser.properties import Property
-
-        in_data = oai.Schema.construct(
-            title=mocker.MagicMock(),
-            description=mocker.MagicMock(),
-            required=["RequiredEnum"],
-            properties={
-                "RequiredEnum": mocker.MagicMock(),
-                "OptionalDateTime": mocker.MagicMock(),
-            },
-        )
-        required_property = mocker.MagicMock(autospec=Property)
-        required_imports = mocker.MagicMock()
-        required_property.get_imports.return_value = {required_imports}
-        optional_property = mocker.MagicMock(autospec=Property)
-        optional_imports = mocker.MagicMock()
-        optional_property.get_imports.return_value = {optional_imports}
-        property_from_data = mocker.patch(
-            f"{MODULE_NAME}.property_from_data",
-            side_effect=[required_property, optional_property],
-        )
-        from_ref = mocker.patch(f"{MODULE_NAME}.Reference.from_ref")
-
-        from openapi_python_client.parser.openapi import Model
-
-        result = Model.from_data(data=in_data, name=mocker.MagicMock())
-
-        from_ref.assert_called_once_with(in_data.title)
-        property_from_data.assert_has_calls(
-            [
-                mocker.call(name="RequiredEnum", required=True, data=in_data.properties["RequiredEnum"]),
-                mocker.call(name="OptionalDateTime", required=False, data=in_data.properties["OptionalDateTime"]),
-            ]
-        )
-        required_property.get_imports.assert_called_once_with(prefix="..")
-        optional_property.get_imports.assert_called_once_with(prefix="..")
-        assert result == Model(
-            reference=from_ref(),
-            required_properties=[required_property],
-            optional_properties=[optional_property],
-            relative_imports={
-                required_imports,
-                optional_imports,
-            },
-            description=in_data.description,
-        )
-
-    def test_from_data_property_parse_error(self, mocker):
-        in_data = oai.Schema.construct(
-            title=mocker.MagicMock(),
-            description=mocker.MagicMock(),
-            required=["RequiredEnum"],
-            properties={
-                "RequiredEnum": mocker.MagicMock(),
-                "OptionalDateTime": mocker.MagicMock(),
-            },
-        )
-        parse_error = ParseError(data=mocker.MagicMock())
-        property_from_data = mocker.patch(
-            f"{MODULE_NAME}.property_from_data",
-            return_value=parse_error,
-        )
-        from_ref = mocker.patch(f"{MODULE_NAME}.Reference.from_ref")
-
-        from openapi_python_client.parser.openapi import Model
-
-        result = Model.from_data(data=in_data, name=mocker.MagicMock())
-
-        from_ref.assert_called_once_with(in_data.title)
-        property_from_data.assert_called_once_with(
-            name="RequiredEnum", required=True, data=in_data.properties["RequiredEnum"]
-        )
-
-        assert result == parse_error
-
-
-class TestSchemas:
-    def test_build(self, mocker):
-        from_data = mocker.patch(f"{MODULE_NAME}.Model.from_data")
-        in_data = {"1": mocker.MagicMock(enum=None), "2": mocker.MagicMock(enum=None), "3": mocker.MagicMock(enum=None)}
-        schema_1 = mocker.MagicMock()
-        schema_2 = mocker.MagicMock()
-        error = ParseError()
-        from_data.side_effect = [schema_1, schema_2, error]
-
-        from openapi_python_client.parser.openapi import Schemas
-
-        result = Schemas.build(schemas=in_data)
-
-        from_data.assert_has_calls([mocker.call(data=value, name=name) for (name, value) in in_data.items()])
-        assert result == Schemas(
-            models={
-                schema_1.reference.class_name: schema_1,
-                schema_2.reference.class_name: schema_2,
-            },
-            errors=[error],
-        )
-
-    def test_build_parse_error_on_reference(self):
-        from openapi_python_client.parser.openapi import Schemas
-
-        ref_schema = oai.Reference.construct()
-        in_data = {1: ref_schema}
-        result = Schemas.build(schemas=in_data)
-        assert result.errors[0] == ParseError(data=ref_schema, detail="Reference schemas are not supported.")
-
-    def test_build_enums(self, mocker):
-        from openapi_python_client.parser.openapi import Schemas
-
-        from_data = mocker.patch(f"{MODULE_NAME}.Model.from_data")
-        enum_property = mocker.patch(f"{MODULE_NAME}.EnumProperty")
-        in_data = {"1": mocker.MagicMock(enum=["val1", "val2", "val3"])}
-
-        Schemas.build(schemas=in_data)
-
-        enum_property.assert_called()
-        from_data.assert_not_called()
 
 
 class TestEndpoint:
@@ -240,30 +117,34 @@ class TestEndpoint:
         assert result is None
 
     def test_parse_request_json_body(self, mocker):
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
+
         schema = mocker.MagicMock()
         body = oai.RequestBody.construct(
             content={"application/json": oai.MediaType.construct(media_type_schema=schema)}
         )
         property_from_data = mocker.patch(f"{MODULE_NAME}.property_from_data")
+        schemas = Schemas()
 
-        from openapi_python_client.parser.openapi import Endpoint
+        result = Endpoint.parse_request_json_body(body=body, schemas=schemas, parent_name="parent")
 
-        result = Endpoint.parse_request_json_body(body)
-
-        property_from_data.assert_called_once_with("json_body", required=True, data=schema)
-        assert result == property_from_data()
+        property_from_data.assert_called_once_with(
+            name="json_body", required=True, data=schema, schemas=schemas, parent_name="parent"
+        )
+        assert result == property_from_data.return_value
 
     def test_parse_request_json_body_no_data(self):
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
+
         body = oai.RequestBody.construct(content={})
+        schemas = Schemas()
 
-        from openapi_python_client.parser.openapi import Endpoint
+        result = Endpoint.parse_request_json_body(body=body, schemas=schemas, parent_name="parent")
 
-        result = Endpoint.parse_request_json_body(body)
-
-        assert result is None
+        assert result == (None, schemas)
 
     def test_add_body_no_data(self, mocker):
-        from openapi_python_client.parser.openapi import Endpoint
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
 
         parse_request_form_body = mocker.patch.object(Endpoint, "parse_request_form_body")
         endpoint = Endpoint(
@@ -275,17 +156,19 @@ class TestEndpoint:
             tag="tag",
             relative_imports={"import_3"},
         )
+        schemas = Schemas()
 
-        Endpoint._add_body(endpoint, oai.Operation.construct())
+        Endpoint._add_body(endpoint=endpoint, data=oai.Operation.construct(), schemas=schemas)
 
         parse_request_form_body.assert_not_called()
 
     def test_add_body_bad_data(self, mocker):
-        from openapi_python_client.parser.openapi import Endpoint
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
 
         mocker.patch.object(Endpoint, "parse_request_form_body")
         parse_error = ParseError(data=mocker.MagicMock())
-        mocker.patch.object(Endpoint, "parse_request_json_body", return_value=parse_error)
+        other_schemas = mocker.MagicMock()
+        mocker.patch.object(Endpoint, "parse_request_json_body", return_value=(parse_error, other_schemas))
         endpoint = Endpoint(
             path="path",
             method="method",
@@ -296,13 +179,19 @@ class TestEndpoint:
             relative_imports={"import_3"},
         )
         request_body = mocker.MagicMock()
+        schemas = Schemas()
 
-        result = Endpoint._add_body(endpoint, oai.Operation.construct(requestBody=request_body))
+        result = Endpoint._add_body(
+            endpoint=endpoint, data=oai.Operation.construct(requestBody=request_body), schemas=schemas
+        )
 
-        assert result == ParseError(detail=f"cannot parse body of endpoint {endpoint.name}", data=parse_error.data)
+        assert result == (
+            ParseError(detail=f"cannot parse body of endpoint {endpoint.name}", data=parse_error.data),
+            other_schemas,
+        )
 
     def test_add_body_happy(self, mocker):
-        from openapi_python_client.parser.openapi import Endpoint, Reference
+        from openapi_python_client.parser.openapi import Endpoint, Reference, Schemas
         from openapi_python_client.parser.properties import Property
 
         request_body = mocker.MagicMock()
@@ -318,7 +207,10 @@ class TestEndpoint:
         json_body = mocker.MagicMock(autospec=Property)
         json_body_imports = mocker.MagicMock()
         json_body.get_imports.return_value = {json_body_imports}
-        parse_request_json_body = mocker.patch.object(Endpoint, "parse_request_json_body", return_value=json_body)
+        parsed_schemas = mocker.MagicMock()
+        parse_request_json_body = mocker.patch.object(
+            Endpoint, "parse_request_json_body", return_value=(json_body, parsed_schemas)
+        )
         import_string_from_reference = mocker.patch(
             f"{MODULE_NAME}.import_string_from_reference", side_effect=["import_1", "import_2"]
         )
@@ -332,11 +224,15 @@ class TestEndpoint:
             tag="tag",
             relative_imports={"import_3"},
         )
+        initial_schemas = mocker.MagicMock()
 
-        endpoint = Endpoint._add_body(endpoint, oai.Operation.construct(requestBody=request_body))
+        (endpoint, response_schemas) = Endpoint._add_body(
+            endpoint=endpoint, data=oai.Operation.construct(requestBody=request_body), schemas=initial_schemas
+        )
 
+        assert response_schemas == parsed_schemas
         parse_request_form_body.assert_called_once_with(request_body)
-        parse_request_json_body.assert_called_once_with(request_body)
+        parse_request_json_body.assert_called_once_with(body=request_body, schemas=initial_schemas, parent_name="name")
         parse_multipart_body.assert_called_once_with(request_body)
         import_string_from_reference.assert_has_calls(
             [
@@ -351,8 +247,9 @@ class TestEndpoint:
         assert endpoint.multipart_body_reference == multipart_body_reference
 
     def test__add_responses_error(self, mocker):
-        from openapi_python_client.parser.openapi import Endpoint
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
 
+        schemas = Schemas()
         response_1_data = mocker.MagicMock()
         response_2_data = mocker.MagicMock()
         data = {
@@ -369,12 +266,15 @@ class TestEndpoint:
             relative_imports={"import_3"},
         )
         parse_error = ParseError(data=mocker.MagicMock())
-        response_from_data = mocker.patch(f"{MODULE_NAME}.response_from_data", return_value=parse_error)
+        response_from_data = mocker.patch(f"{MODULE_NAME}.response_from_data", return_value=(parse_error, schemas))
 
-        response = Endpoint._add_responses(endpoint, data)
+        response, schemas = Endpoint._add_responses(endpoint=endpoint, data=data, schemas=schemas)
 
         response_from_data.assert_has_calls(
-            [mocker.call(status_code=200, data=response_1_data), mocker.call(status_code=404, data=response_2_data)]
+            [
+                mocker.call(status_code=200, data=response_1_data, schemas=schemas, parent_name="name"),
+                mocker.call(status_code=404, data=response_2_data, schemas=schemas, parent_name="name"),
+            ]
         )
         assert response.errors == [
             ParseError(
@@ -388,7 +288,8 @@ class TestEndpoint:
         ]
 
     def test__add_responses(self, mocker):
-        from openapi_python_client.parser.openapi import Endpoint, Reference, RefResponse
+        from openapi_python_client.parser.openapi import Endpoint, Response
+        from openapi_python_client.parser.properties import DateProperty, DateTimeProperty
 
         response_1_data = mocker.MagicMock()
         response_2_data = mocker.MagicMock()
@@ -405,34 +306,42 @@ class TestEndpoint:
             tag="tag",
             relative_imports={"import_3"},
         )
-        ref_1 = Reference.from_ref(ref="ref_1")
-        ref_2 = Reference.from_ref(ref="ref_2")
-        response_1 = RefResponse(status_code=200, reference=ref_1)
-        response_2 = RefResponse(status_code=404, reference=ref_2)
-        response_from_data = mocker.patch(f"{MODULE_NAME}.response_from_data", side_effect=[response_1, response_2])
-        import_string_from_reference = mocker.patch(
-            f"{MODULE_NAME}.import_string_from_reference", side_effect=["import_1", "import_2"]
+        schemas = mocker.MagicMock()
+        schemas_1 = mocker.MagicMock()
+        schemas_2 = mocker.MagicMock()
+        response_1 = Response(
+            status_code=200,
+            source="source",
+            prop=DateTimeProperty(name="datetime", required=True, nullable=False, default=None),
+        )
+        response_2 = Response(
+            status_code=404,
+            source="source",
+            prop=DateProperty(name="date", required=True, nullable=False, default=None),
+        )
+        response_from_data = mocker.patch(
+            f"{MODULE_NAME}.response_from_data", side_effect=[(response_1, schemas_1), (response_2, schemas_2)]
         )
 
-        endpoint = Endpoint._add_responses(endpoint, data)
+        endpoint, response_schemas = Endpoint._add_responses(endpoint=endpoint, data=data, schemas=schemas)
 
         response_from_data.assert_has_calls(
             [
-                mocker.call(status_code=200, data=response_1_data),
-                mocker.call(status_code=404, data=response_2_data),
-            ]
-        )
-        import_string_from_reference.assert_has_calls(
-            [
-                mocker.call(ref_1, prefix="...models"),
-                mocker.call(ref_2, prefix="...models"),
+                mocker.call(status_code=200, data=response_1_data, schemas=schemas, parent_name="name"),
+                mocker.call(status_code=404, data=response_2_data, schemas=schemas_1, parent_name="name"),
             ]
         )
         assert endpoint.responses == [response_1, response_2]
-        assert endpoint.relative_imports == {"import_1", "import_2", "import_3"}
+        assert endpoint.relative_imports == {
+            "from dateutil.parser import isoparse",
+            "from typing import cast",
+            "import datetime",
+            "import_3",
+        }
+        assert response_schemas == schemas_2
 
     def test__add_parameters_handles_no_params(self):
-        from openapi_python_client.parser.openapi import Endpoint
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
 
         endpoint = Endpoint(
             path="path",
@@ -442,8 +351,12 @@ class TestEndpoint:
             requires_security=False,
             tag="tag",
         )
+        schemas = Schemas()
         # Just checking there's no exception here
-        assert Endpoint._add_parameters(endpoint, oai.Operation.construct()) == endpoint
+        assert Endpoint._add_parameters(endpoint=endpoint, data=oai.Operation.construct(), schemas=schemas) == (
+            endpoint,
+            schemas,
+        )
 
     def test__add_parameters_parse_error(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
@@ -456,15 +369,22 @@ class TestEndpoint:
             requires_security=False,
             tag="tag",
         )
+        initial_schemas = mocker.MagicMock()
         parse_error = ParseError(data=mocker.MagicMock())
-        mocker.patch(f"{MODULE_NAME}.property_from_data", return_value=parse_error)
+        property_schemas = mocker.MagicMock()
+        mocker.patch(f"{MODULE_NAME}.property_from_data", return_value=(parse_error, property_schemas))
         param = oai.Parameter.construct(name="test", required=True, param_schema=mocker.MagicMock(), param_in="cookie")
 
-        result = Endpoint._add_parameters(endpoint, oai.Operation.construct(parameters=[param]))
-        assert result == ParseError(data=parse_error.data, detail=f"cannot parse parameter of endpoint {endpoint.name}")
+        result = Endpoint._add_parameters(
+            endpoint=endpoint, data=oai.Operation.construct(parameters=[param]), schemas=initial_schemas
+        )
+        assert result == (
+            ParseError(data=parse_error.data, detail=f"cannot parse parameter of endpoint {endpoint.name}"),
+            property_schemas,
+        )
 
     def test__add_parameters_fail_loudly_when_location_not_supported(self, mocker):
-        from openapi_python_client.parser.openapi import Endpoint
+        from openapi_python_client.parser.openapi import Endpoint, Schemas
 
         endpoint = Endpoint(
             path="path",
@@ -474,11 +394,15 @@ class TestEndpoint:
             requires_security=False,
             tag="tag",
         )
-        mocker.patch(f"{MODULE_NAME}.property_from_data")
+        parsed_schemas = mocker.MagicMock()
+        mocker.patch(f"{MODULE_NAME}.property_from_data", return_value=(mocker.MagicMock(), parsed_schemas))
         param = oai.Parameter.construct(name="test", required=True, param_schema=mocker.MagicMock(), param_in="cookie")
+        schemas = Schemas()
 
-        result = Endpoint._add_parameters(endpoint, oai.Operation.construct(parameters=[param]))
-        assert result == ParseError(data=param, detail="Parameter must be declared in path or query")
+        result = Endpoint._add_parameters(
+            endpoint=endpoint, data=oai.Operation.construct(parameters=[param]), schemas=schemas
+        )
+        assert result == (ParseError(data=param, detail="Parameter must be declared in path or query"), parsed_schemas)
 
     def test__add_parameters_happy(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
@@ -502,8 +426,12 @@ class TestEndpoint:
         header_prop = mocker.MagicMock(autospec=Property)
         header_prop_import = mocker.MagicMock()
         header_prop.get_imports = mocker.MagicMock(return_value={header_prop_import})
+        schemas_1 = mocker.MagicMock()
+        schemas_2 = mocker.MagicMock()
+        schemas_3 = mocker.MagicMock()
         property_from_data = mocker.patch(
-            f"{MODULE_NAME}.property_from_data", side_effect=[path_prop, query_prop, header_prop]
+            f"{MODULE_NAME}.property_from_data",
+            side_effect=[(path_prop, schemas_1), (query_prop, schemas_2), (header_prop, schemas_3)],
         )
         path_schema = mocker.MagicMock()
         query_schema = mocker.MagicMock()
@@ -523,14 +451,21 @@ class TestEndpoint:
                 oai.Parameter.construct(),  # Should be ignored
             ]
         )
+        initial_schemas = mocker.MagicMock()
 
-        endpoint = Endpoint._add_parameters(endpoint, data)
+        (endpoint, schemas) = Endpoint._add_parameters(endpoint=endpoint, data=data, schemas=initial_schemas)
 
         property_from_data.assert_has_calls(
             [
-                mocker.call(name="path_prop_name", required=True, data=path_schema),
-                mocker.call(name="query_prop_name", required=False, data=query_schema),
-                mocker.call(name="header_prop_name", required=False, data=header_schema),
+                mocker.call(
+                    name="path_prop_name", required=True, data=path_schema, schemas=initial_schemas, parent_name="name"
+                ),
+                mocker.call(
+                    name="query_prop_name", required=False, data=query_schema, schemas=schemas_1, parent_name="name"
+                ),
+                mocker.call(
+                    name="header_prop_name", required=False, data=header_schema, schemas=schemas_2, parent_name="name"
+                ),
             ]
         )
         path_prop.get_imports.assert_called_once_with(prefix="...")
@@ -540,6 +475,7 @@ class TestEndpoint:
         assert endpoint.path_parameters == [path_prop]
         assert endpoint.query_parameters == [query_prop]
         assert endpoint.header_parameters == [header_prop]
+        assert schemas == schemas_3
 
     def test_from_data_bad_params(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
@@ -547,17 +483,19 @@ class TestEndpoint:
         path = mocker.MagicMock()
         method = mocker.MagicMock()
         parse_error = ParseError(data=mocker.MagicMock())
-        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters", return_value=parse_error)
+        return_schemas = mocker.MagicMock()
+        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters", return_value=(parse_error, return_schemas))
         data = oai.Operation.construct(
             description=mocker.MagicMock(),
             operationId=mocker.MagicMock(),
             security={"blah": "bloo"},
             responses=mocker.MagicMock(),
         )
+        inital_schemas = mocker.MagicMock()
 
-        result = Endpoint.from_data(data=data, path=path, method=method, tag="default")
+        result = Endpoint.from_data(data=data, path=path, method=method, tag="default", schemas=inital_schemas)
 
-        assert result == parse_error
+        assert result == (parse_error, return_schemas)
 
     def test_from_data_bad_responses(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
@@ -565,42 +503,56 @@ class TestEndpoint:
         path = mocker.MagicMock()
         method = mocker.MagicMock()
         parse_error = ParseError(data=mocker.MagicMock())
-        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters")
-        _add_responses = mocker.patch.object(Endpoint, "_add_responses", return_value=parse_error)
+        param_schemas = mocker.MagicMock()
+        _add_parameters = mocker.patch.object(
+            Endpoint, "_add_parameters", return_value=(mocker.MagicMock(), param_schemas)
+        )
+        response_schemas = mocker.MagicMock()
+        _add_responses = mocker.patch.object(Endpoint, "_add_responses", return_value=(parse_error, response_schemas))
         data = oai.Operation.construct(
             description=mocker.MagicMock(),
             operationId=mocker.MagicMock(),
             security={"blah": "bloo"},
             responses=mocker.MagicMock(),
         )
+        initial_schemas = mocker.MagicMock()
 
-        result = Endpoint.from_data(data=data, path=path, method=method, tag="default")
+        result = Endpoint.from_data(data=data, path=path, method=method, tag="default", schemas=initial_schemas)
 
-        assert result == parse_error
+        assert result == (parse_error, response_schemas)
 
     def test_from_data_standard(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
 
         path = mocker.MagicMock()
         method = mocker.MagicMock()
-        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters")
-        _add_responses = mocker.patch.object(Endpoint, "_add_responses")
-        _add_body = mocker.patch.object(Endpoint, "_add_body")
+        param_schemas = mocker.MagicMock()
+        param_endpoint = mocker.MagicMock()
+        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters", return_value=(param_endpoint, param_schemas))
+        response_schemas = mocker.MagicMock()
+        response_endpoint = mocker.MagicMock()
+        _add_responses = mocker.patch.object(
+            Endpoint, "_add_responses", return_value=(response_endpoint, response_schemas)
+        )
+        body_schemas = mocker.MagicMock()
+        body_endpoint = mocker.MagicMock()
+        _add_body = mocker.patch.object(Endpoint, "_add_body", return_value=(body_endpoint, body_schemas))
         data = oai.Operation.construct(
             description=mocker.MagicMock(),
             operationId=mocker.MagicMock(),
             security={"blah": "bloo"},
             responses=mocker.MagicMock(),
         )
+        initial_schemas = mocker.MagicMock()
 
         mocker.patch("openapi_python_client.utils.remove_string_escapes", return_value=data.description)
 
-        endpoint = Endpoint.from_data(data=data, path=path, method=method, tag="default")
+        endpoint = Endpoint.from_data(data=data, path=path, method=method, tag="default", schemas=initial_schemas)
 
         assert endpoint == _add_body.return_value
 
         _add_parameters.assert_called_once_with(
-            Endpoint(
+            endpoint=Endpoint(
                 path=path,
                 method=method,
                 description=data.description,
@@ -608,34 +560,39 @@ class TestEndpoint:
                 requires_security=True,
                 tag="default",
             ),
-            data,
+            data=data,
+            schemas=initial_schemas,
         )
-        _add_responses.assert_called_once_with(_add_parameters.return_value, data.responses)
-        _add_body.assert_called_once_with(_add_responses.return_value, data)
+        _add_responses.assert_called_once_with(endpoint=param_endpoint, data=data.responses, schemas=param_schemas)
+        _add_body.assert_called_once_with(endpoint=response_endpoint, data=data, schemas=response_schemas)
 
     def test_from_data_no_operation_id(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
 
         path = "/path/with/{param}/"
         method = "get"
-        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters")
-        _add_responses = mocker.patch.object(Endpoint, "_add_responses")
-        _add_body = mocker.patch.object(Endpoint, "_add_body")
+        _add_parameters = mocker.patch.object(
+            Endpoint, "_add_parameters", return_value=(mocker.MagicMock(), mocker.MagicMock())
+        )
+        _add_responses = mocker.patch.object(
+            Endpoint, "_add_responses", return_value=(mocker.MagicMock(), mocker.MagicMock())
+        )
+        _add_body = mocker.patch.object(Endpoint, "_add_body", return_value=(mocker.MagicMock(), mocker.MagicMock()))
         data = oai.Operation.construct(
             description=mocker.MagicMock(),
             operationId=None,
             security={"blah": "bloo"},
             responses=mocker.MagicMock(),
         )
-
+        schemas = mocker.MagicMock()
         mocker.patch("openapi_python_client.utils.remove_string_escapes", return_value=data.description)
 
-        endpoint = Endpoint.from_data(data=data, path=path, method=method, tag="default")
+        result = Endpoint.from_data(data=data, path=path, method=method, tag="default", schemas=schemas)
 
-        assert endpoint == _add_body.return_value
+        assert result == _add_body.return_value
 
         _add_parameters.assert_called_once_with(
-            Endpoint(
+            endpoint=Endpoint(
                 path=path,
                 method=method,
                 description=data.description,
@@ -643,10 +600,15 @@ class TestEndpoint:
                 requires_security=True,
                 tag="default",
             ),
-            data,
+            data=data,
+            schemas=schemas,
         )
-        _add_responses.assert_called_once_with(_add_parameters.return_value, data.responses)
-        _add_body.assert_called_once_with(_add_responses.return_value, data)
+        _add_responses.assert_called_once_with(
+            endpoint=_add_parameters.return_value[0], data=data.responses, schemas=_add_parameters.return_value[1]
+        )
+        _add_body.assert_called_once_with(
+            endpoint=_add_responses.return_value[0], data=data, schemas=_add_responses.return_value[1]
+        )
 
     def test_from_data_no_security(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint
@@ -657,17 +619,22 @@ class TestEndpoint:
             security=None,
             responses=mocker.MagicMock(),
         )
-        _add_parameters = mocker.patch.object(Endpoint, "_add_parameters")
-        _add_responses = mocker.patch.object(Endpoint, "_add_responses")
-        _add_body = mocker.patch.object(Endpoint, "_add_body")
+        _add_parameters = mocker.patch.object(
+            Endpoint, "_add_parameters", return_value=(mocker.MagicMock(), mocker.MagicMock())
+        )
+        _add_responses = mocker.patch.object(
+            Endpoint, "_add_responses", return_value=(mocker.MagicMock(), mocker.MagicMock())
+        )
+        _add_body = mocker.patch.object(Endpoint, "_add_body", return_value=(mocker.MagicMock(), mocker.MagicMock()))
         path = mocker.MagicMock()
         method = mocker.MagicMock()
         mocker.patch("openapi_python_client.utils.remove_string_escapes", return_value=data.description)
+        schemas = mocker.MagicMock()
 
-        Endpoint.from_data(data=data, path=path, method=method, tag="a")
+        Endpoint.from_data(data=data, path=path, method=method, tag="a", schemas=schemas)
 
         _add_parameters.assert_called_once_with(
-            Endpoint(
+            endpoint=Endpoint(
                 path=path,
                 method=method,
                 description=data.description,
@@ -675,10 +642,15 @@ class TestEndpoint:
                 requires_security=False,
                 tag="a",
             ),
-            data,
+            data=data,
+            schemas=schemas,
         )
-        _add_responses.assert_called_once_with(_add_parameters.return_value, data.responses)
-        _add_body.assert_called_once_with(_add_responses.return_value, data)
+        _add_responses.assert_called_once_with(
+            endpoint=_add_parameters.return_value[0], data=data.responses, schemas=_add_parameters.return_value[1]
+        )
+        _add_body.assert_called_once_with(
+            endpoint=_add_responses.return_value[0], data=data, schemas=_add_responses.return_value[1]
+        )
 
 
 class TestImportStringFromReference:
@@ -716,23 +688,32 @@ class TestEndpointCollection:
         endpoint_1 = mocker.MagicMock(autospec=Endpoint, tag="default", relative_imports={"1", "2"})
         endpoint_2 = mocker.MagicMock(autospec=Endpoint, tag="tag_2", relative_imports={"2"})
         endpoint_3 = mocker.MagicMock(autospec=Endpoint, tag="default", relative_imports={"2", "3"})
+        schemas_1 = mocker.MagicMock()
+        schemas_2 = mocker.MagicMock()
+        schemas_3 = mocker.MagicMock()
         endpoint_from_data = mocker.patch.object(
-            Endpoint, "from_data", side_effect=[endpoint_1, endpoint_2, endpoint_3]
+            Endpoint,
+            "from_data",
+            side_effect=[(endpoint_1, schemas_1), (endpoint_2, schemas_2), (endpoint_3, schemas_3)],
         )
+        schemas = mocker.MagicMock()
 
-        result = EndpointCollection.from_data(data=data)
+        result = EndpointCollection.from_data(data=data, schemas=schemas)
 
         endpoint_from_data.assert_has_calls(
             [
-                mocker.call(data=path_1_put, path="path_1", method="put", tag="default"),
-                mocker.call(data=path_1_post, path="path_1", method="post", tag="tag_2"),
-                mocker.call(data=path_2_get, path="path_2", method="get", tag="default"),
+                mocker.call(data=path_1_put, path="path_1", method="put", tag="default", schemas=schemas),
+                mocker.call(data=path_1_post, path="path_1", method="post", tag="tag_2", schemas=schemas_1),
+                mocker.call(data=path_2_get, path="path_2", method="get", tag="default", schemas=schemas_2),
             ],
         )
-        assert result == {
-            "default": EndpointCollection("default", endpoints=[endpoint_1, endpoint_3]),
-            "tag_2": EndpointCollection("tag_2", endpoints=[endpoint_2]),
-        }
+        assert result == (
+            {
+                "default": EndpointCollection("default", endpoints=[endpoint_1, endpoint_3]),
+                "tag_2": EndpointCollection("tag_2", endpoints=[endpoint_2]),
+            },
+            schemas_3,
+        )
 
     def test_from_data_errors(self, mocker):
         from openapi_python_client.parser.openapi import Endpoint, EndpointCollection, ParseError
@@ -744,21 +725,30 @@ class TestEndpointCollection:
             "path_1": oai.PathItem.construct(post=path_1_post, put=path_1_put),
             "path_2": oai.PathItem.construct(get=path_2_get),
         }
+        schemas_1 = mocker.MagicMock()
+        schemas_2 = mocker.MagicMock()
+        schemas_3 = mocker.MagicMock()
         endpoint_from_data = mocker.patch.object(
             Endpoint,
             "from_data",
-            side_effect=[ParseError(data="1"), ParseError(data="2"), mocker.MagicMock(errors=[ParseError(data="3")])],
+            side_effect=[
+                (ParseError(data="1"), schemas_1),
+                (ParseError(data="2"), schemas_2),
+                (mocker.MagicMock(errors=[ParseError(data="3")]), schemas_3),
+            ],
         )
+        schemas = mocker.MagicMock()
 
-        result = EndpointCollection.from_data(data=data)
+        result, result_schemas = EndpointCollection.from_data(data=data, schemas=schemas)
 
         endpoint_from_data.assert_has_calls(
             [
-                mocker.call(data=path_1_put, path="path_1", method="put", tag="default"),
-                mocker.call(data=path_1_post, path="path_1", method="post", tag="tag_2"),
-                mocker.call(data=path_2_get, path="path_2", method="get", tag="default"),
+                mocker.call(data=path_1_put, path="path_1", method="put", tag="default", schemas=schemas),
+                mocker.call(data=path_1_post, path="path_1", method="post", tag="tag_2", schemas=schemas_1),
+                mocker.call(data=path_2_get, path="path_2", method="get", tag="default", schemas=schemas_2),
             ],
         )
         assert result["default"].parse_errors[0].data == "1"
         assert result["default"].parse_errors[1].data == "3"
         assert result["tag_2"].parse_errors[0].data == "2"
+        assert result_schemas == schemas_3

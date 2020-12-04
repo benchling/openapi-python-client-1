@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Dict, List, Set, Union
 import attr
 
 from ... import schema as oai
-from ..errors import ParseError
+from ..errors import PropertyError
 from ..reference import Reference
 from .property import Property
 
@@ -29,7 +29,7 @@ class ModelProperty(Property):
 
     def resolve_references(
         self, components: Dict[str, Union[oai.Reference, oai.Schema]], schemas: Schemas
-    ) -> Union[List[Property], ParseError]:
+    ) -> Union[Schemas, PropertyError]:
         from ..properties import property_from_data
 
         required_set = set()
@@ -53,10 +53,10 @@ class ModelProperty(Property):
 
         for key, (value, source_name) in (props or {}).items():
             required = key in required_set
-            prop, _ = property_from_data(
+            prop, schemas = property_from_data(
                 name=key, required=required, data=value, schemas=schemas, parent_name=source_name
             )
-            if isinstance(prop, ParseError):
+            if isinstance(prop, PropertyError):
                 return prop
             if required:
                 self.required_properties.append(prop)
@@ -68,7 +68,7 @@ class ModelProperty(Property):
                 self.optional_properties.append(prop)
             self.relative_imports.update(prop.get_imports(prefix=".."))
 
-        return self.required_properties + self.optional_properties
+        return schemas
 
     def get_type_string(self, no_optional: bool = False) -> str:
         """ Get a string representation of type that should be used when declaring this property """

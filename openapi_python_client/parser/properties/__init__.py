@@ -522,7 +522,16 @@ def build_schemas(*, components: Dict[str, Union[oai.Reference, oai.Schema]]) ->
                 schemas = schemas_or_err
                 processing = True  # We made some progress this round, do another after it's done
         to_process = next_round
+
+    resolve_errors: List[PropertyError] = []
+    models = list(schemas.models.values())
+    for model in models:
+        schemas_or_err = model.resolve_references(components=components, schemas=schemas)
+        if isinstance(schemas_or_err, PropertyError):
+            resolve_errors.append(schemas_or_err)
+        else:
+            schemas = schemas_or_err
+
     schemas.errors.extend(errors)
-    for model in schemas.models.values():
-        model.resolve_references(components=components, schemas=schemas)
+    schemas.errors.extend(resolve_errors)
     return schemas

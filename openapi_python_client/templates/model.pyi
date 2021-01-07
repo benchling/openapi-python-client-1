@@ -1,4 +1,4 @@
-from typing import Any, Dict, TypeVar, Type
+from typing import Any, Dict, Type, TypeVar
 
 {% if model.additional_properties %}
 from typing import List

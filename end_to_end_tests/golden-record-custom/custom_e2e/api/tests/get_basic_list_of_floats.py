@@ -11,10 +11,11 @@ from typing import List, cast
 
 def _parse_response(*, response: httpx.Response) -> Optional[List[float]]:
     if response.status_code == 200:
-        response_200 = cast(List[float], response.json())
+        response_200 = cast(, response.json())
 
         return response_200
     return None
+
 
 
 def _build_response(*, response: httpx.Response) -> Response[List[float]]:
@@ -26,10 +27,12 @@ def _build_response(*, response: httpx.Response) -> Response[List[float]]:
     )
 
 
-def httpx_request(
-    *,
+def httpx_request(*,
     client: Client,
 ) -> Response[List[float]]:
+    
+    
+    
 
     response = client.request(
         "get",

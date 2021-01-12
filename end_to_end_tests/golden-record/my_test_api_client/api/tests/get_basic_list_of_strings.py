@@ -1,18 +1,27 @@
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, List, Optional, Union, cast
 
 import httpx
+from attr import asdict
 
-from ...client import Client
+from ...client import AuthenticatedClient, Client
 from ...types import Response
 
 
 def _get_kwargs(
     *,
     client: Client,
+
 ) -> Dict[str, Any]:
-    url = "{}/tests/basic_lists/strings".format(client.base_url)
+    url = "{}/tests/basic_lists/strings".format(
+        client.base_url)
 
     headers: Dict[str, Any] = client.get_headers()
+
+    
+
+    
+
+    
 
     return {
         "url": url,
@@ -24,7 +33,7 @@ def _get_kwargs(
 
 def _parse_response(*, response: httpx.Response) -> Optional[List[str]]:
     if response.status_code == 200:
-        response_200 = cast(List[str], response.json())
+        response_200 = cast(, response.json())
 
         return response_200
     return None
@@ -42,9 +51,11 @@ def _build_response(*, response: httpx.Response) -> Response[List[str]]:
 def sync_detailed(
     *,
     client: Client,
+
 ) -> Response[List[str]]:
     kwargs = _get_kwargs(
         client=client,
+
     )
 
     response = httpx.get(
@@ -53,40 +64,43 @@ def sync_detailed(
 
     return _build_response(response=response)
 
-
 def sync(
     *,
     client: Client,
+
 ) -> Optional[List[str]]:
     """ Get a list of strings  """
 
     return sync_detailed(
         client=client,
-    ).parsed
 
+    ).parsed
 
 async def asyncio_detailed(
     *,
     client: Client,
+
 ) -> Response[List[str]]:
     kwargs = _get_kwargs(
         client=client,
+
     )
 
     async with httpx.AsyncClient() as _client:
-        response = await _client.get(**kwargs)
+        response = await _client.get(
+            **kwargs
+        )
 
     return _build_response(response=response)
-
 
 async def asyncio(
     *,
     client: Client,
+
 ) -> Optional[List[str]]:
     """ Get a list of strings  """
 
-    return (
-        await asyncio_detailed(
-            client=client,
-        )
-    ).parsed
+    return (await asyncio_detailed(
+        client=client,
+
+    )).parsed

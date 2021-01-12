@@ -124,16 +124,8 @@ class ListProperty(Property, Generic[InnerProp]):
     inner_property: InnerProp
     template: ClassVar[str] = "list_property.pyi"
 
-    def get_type_string(self, no_optional: bool = False) -> str:
-        """ Get a string representation of type that should be used when declaring this property """
-        type_string = f"List[{self.inner_property.get_type_string()}]"
-        if no_optional:
-            return type_string
-        if self.nullable:
-            type_string = f"Optional[{type_string}]"
-        if not self.required:
-            type_string = f"Union[Unset, {type_string}]"
-        return type_string
+    def get_base_type_string(self) -> str:
+        return f"List[{self.inner_property.get_type_string()}]"
 
     def get_instance_type_string(self) -> str:
         """Get a string representation of runtime type that should be used for `isinstance` checks"""
@@ -166,19 +158,11 @@ class UnionProperty(Property):
         object.__setattr__(
             self, "has_properties_without_templates", any(prop.template is None for prop in self.inner_properties)
         )
-
-    def get_type_string(self, no_optional: bool = False) -> str:
-        """ Get a string representation of type that should be used when declaring this property """
+    
+    def get_base_type_string(self) -> str:
         inner_types = [p.get_type_string(no_optional=True) for p in self.inner_properties]
         inner_prop_string = ", ".join(inner_types)
-        type_string = f"Union[{inner_prop_string}]"
-        if no_optional:
-            return type_string
-        if not self.required:
-            type_string = f"Union[Unset, {inner_prop_string}]"
-        if self.nullable:
-            type_string = f"Optional[{type_string}]"
-        return type_string
+        return f"Union[{inner_prop_string}]"
 
     def get_imports(self, *, prefix: str) -> Set[str]:
         """

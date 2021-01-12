@@ -31,6 +31,9 @@ class Property:
 
     def __attrs_post_init__(self) -> None:
         object.__setattr__(self, "python_name", utils.to_valid_python_identifier(utils.snake_case(self.name)))
+    
+    def get_base_type_string(self) -> str:
+        return self._type_string
 
     def get_type_string(self, no_optional: bool = False, query_parameter: bool = False) -> str:
         """
@@ -40,7 +43,7 @@ class Property:
             no_optional: Do not include Optional or Unset even if the value is optional (needed for isinstance checks)
             query_arg: True if the property's type is being used for a query parameter
         """
-        type_string = self._type_string
+        type_string = self.get_base_type_string()
         if no_optional:
             return self._type_string
         if self.nullable:

@@ -96,7 +96,7 @@ json_body: {{ endpoint.json_body.get_type_string() }},
 {% endif %}
 {# query parameters #}
 {% for parameter in endpoint.query_parameters %}
-{{ parameter.to_string() }},
+{{ parameter.to_query_method_arg() }},
 {% endfor %}
 {% for parameter in endpoint.header_parameters %}
 {{ parameter.to_string() }},

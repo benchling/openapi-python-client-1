@@ -45,7 +45,7 @@ else:
 {% endif %}
 {% else %}
 {{ destination }}{% if declare_type %}: Union[Unset, List[Any]]{% endif %} = UNSET
-if not isinstance({{ source }}, Unset):
+if not isinstance({{ source }}, Unset) and {{ source }} is not None:
 {% if property.nullable %}
     if {{ source }} is None:
         {{ destination }} = None

@@ -17,7 +17,7 @@ class ModelWithPrimitiveAdditionalProperties:
 
     def to_dict(self) -> Dict[str, Any]:
         a_date_holder: Union[Unset, Dict[str, Any]] = UNSET
-        if not isinstance(self.a_date_holder, Unset):
+        if not isinstance(self.a_date_holder, Unset) and self.a_date_holder is not None:
             a_date_holder = self.a_date_holder.to_dict()
 
         field_dict: Dict[str, Any] = {}

@@ -28,7 +28,7 @@ def _parse_{{ property.python_name }}(data: Any) -> {{ property.get_type_string(
 {% if not property.required %}
 {{ destination }}{% if declare_type %}: {{ property.get_type_string() }}{% endif %}
 
-if isinstance({{ source }}, Unset):
+if isinstance({{ source }}, Unset) or {{ source }} is None:
     {{ destination }} = UNSET
 {% endif %}
 {% if property.nullable %}

@@ -17,7 +17,7 @@ def _get_kwargs(
     headers: Dict[str, Any] = client.get_headers()
 
     json_query_param: Union[Unset, List[Any]] = UNSET
-    if not isinstance(query_param, Unset):
+    if not isinstance(query_param, Unset) and query_param is not None:
         json_query_param = query_param
 
     params: Dict[str, Any] = {}

@@ -13,7 +13,7 @@
 {% endif %}
 {% else %}
 {{ destination }}{% if declare_type %}: {{ property.get_type_string() }}{% endif %} = UNSET
-if not isinstance({{ source }}, Unset):
+if not isinstance({{ source }}, Unset) and {{ source }} is not None:
 {% if property.nullable %}
     {{ destination }} = {{ source }}.to_tuple() if {{ source }} else None
 {% else %}

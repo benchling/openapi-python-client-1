@@ -40,7 +40,7 @@ def httpx_request(
 ) -> Response[Union[None, HTTPValidationError]]:
 
     json_query_param: Union[Unset, List[Any]] = UNSET
-    if not isinstance(query_param, Unset):
+    if not isinstance(query_param, Unset) and query_param is not None:
         json_query_param = query_param
 
     params: Dict[str, Any] = {}

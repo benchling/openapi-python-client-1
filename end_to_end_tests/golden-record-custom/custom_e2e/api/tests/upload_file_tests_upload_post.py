@@ -49,7 +49,7 @@ def httpx_request(*,
     None,
     HTTPValidationError
 ]]:
-    if keep_alive is not UNSET and keep_alive is not None:
+    if keep_alive is not UNSET:
         headers["keep-alive"] = keep_alive
 
     

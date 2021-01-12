@@ -53,15 +53,15 @@ def httpx_request(
 ) -> Response[Union[None, HTTPValidationError]]:
 
     json_datetime_prop: Union[Unset, str] = UNSET
-    if not isinstance(datetime_prop, Unset):
+    if not isinstance(datetime_prop, Unset) and datetime_prop is not None:
         json_datetime_prop = datetime_prop.isoformat()
 
     json_date_prop: Union[Unset, str] = UNSET
-    if not isinstance(date_prop, Unset):
+    if not isinstance(date_prop, Unset) and date_prop is not None:
         json_date_prop = date_prop.isoformat()
 
     json_list_prop: Union[Unset, List[Any]] = UNSET
-    if not isinstance(list_prop, Unset):
+    if not isinstance(list_prop, Unset) and list_prop is not None:
         json_list_prop = []
         for list_prop_item_data in list_prop:
             list_prop_item = list_prop_item_data.value
@@ -69,24 +69,24 @@ def httpx_request(
             json_list_prop.append(list_prop_item)
 
     json_union_prop: Union[Unset, float, str]
-    if isinstance(union_prop, Unset):
+    if isinstance(union_prop, Unset) or union_prop is None:
         json_union_prop = UNSET
     else:
         json_union_prop = union_prop
 
     json_union_prop_with_ref: Union[Unset, float, AnEnum]
-    if isinstance(union_prop_with_ref, Unset):
+    if isinstance(union_prop_with_ref, Unset) or union_prop_with_ref is None:
         json_union_prop_with_ref = UNSET
     elif isinstance(union_prop_with_ref, AnEnum):
         json_union_prop_with_ref = UNSET
-        if not isinstance(union_prop_with_ref, Unset):
+        if not isinstance(union_prop_with_ref, Unset) and union_prop_with_ref is not None:
             json_union_prop_with_ref = union_prop_with_ref
 
     else:
         json_union_prop_with_ref = union_prop_with_ref
 
     json_enum_prop: Union[Unset, AnEnum] = UNSET
-    if not isinstance(enum_prop, Unset):
+    if not isinstance(enum_prop, Unset) and enum_prop is not None:
         json_enum_prop = enum_prop
 
     params: Dict[str, Any] = {}

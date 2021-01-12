@@ -14,7 +14,7 @@ if _{{ property.python_name }} is not None:
 {{ destination }} = {{ source }}.isoformat() {% if property.nullable %}if {{ source }} else None {%endif%}
 {% else %}
 {{ destination }}{% if declare_type %}: Union[Unset, str]{% endif %} = UNSET
-if not isinstance({{ source }}, Unset):
+if not isinstance({{ source }}, Unset) and {{ source }} is not None:
 {% if property.nullable %}
     {{ destination }} = {{ source }}.isoformat() if {{ source }} else None
 {% else %}

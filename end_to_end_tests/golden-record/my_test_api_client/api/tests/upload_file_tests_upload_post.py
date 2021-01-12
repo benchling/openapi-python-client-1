@@ -18,7 +18,7 @@ def _get_kwargs(
 
     headers: Dict[str, Any] = client.get_headers()
 
-    if keep_alive is not UNSET and keep_alive is not None:
+    if keep_alive is not UNSET:
         headers["keep-alive"] = keep_alive
 
     return {

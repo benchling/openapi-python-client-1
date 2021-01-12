@@ -17,7 +17,7 @@ if {{ parameter.python_name }} is not UNSET:
         {% set destination = "json_" + property.python_name %}
         {% if property.template %}
             {% from "property_templates/" + property.template import transform %}
-{{ transform(property, property.python_name, destination) }}
+{{ transform(property, property.python_name, destination, query_parameter=True) }}
         {% endif %}
     {% endfor %}
 params: Dict[str, Any] = {

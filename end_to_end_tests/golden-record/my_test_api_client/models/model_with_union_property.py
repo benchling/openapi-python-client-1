@@ -15,16 +15,16 @@ class ModelWithUnionProperty:
 
     def to_dict(self) -> Dict[str, Any]:
         a_property: Union[Unset, AnEnum, AnIntEnum]
-        if isinstance(self.a_property, Unset) or self.a_property is None:
+        if isinstance(self.a_property, Unset):
             a_property = UNSET
         elif isinstance(self.a_property, AnEnum):
             a_property = UNSET
-            if not isinstance(self.a_property, Unset) and self.a_property is not None:
+            if not isinstance(self.a_property, Unset):
                 a_property = self.a_property
 
         else:
             a_property = UNSET
-            if not isinstance(self.a_property, Unset) and self.a_property is not None:
+            if not isinstance(self.a_property, Unset):
                 a_property = self.a_property
 
         field_dict: Dict[str, Any] = {}

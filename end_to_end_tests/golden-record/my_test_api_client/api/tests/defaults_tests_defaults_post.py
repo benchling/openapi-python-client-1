@@ -55,7 +55,7 @@ def _get_kwargs(
         json_union_prop_with_ref = UNSET
     elif isinstance(union_prop_with_ref, AnEnum):
         json_union_prop_with_ref = UNSET
-        if not isinstance(union_prop_with_ref, Unset) and union_prop_with_ref is not None:
+        if not isinstance(union_prop_with_ref, Unset):
             json_union_prop_with_ref = union_prop_with_ref
 
     else:

@@ -14,7 +14,7 @@ class HTTPValidationError:
 
     def to_dict(self) -> Dict[str, Any]:
         detail: Union[Unset, List[Any]] = UNSET
-        if not isinstance(self.detail, Unset) and self.detail is not None:
+        if not isinstance(self.detail, Unset):
             detail = []
             for detail_item_data in self.detail:
                 detail_item = detail_item_data.to_dict()

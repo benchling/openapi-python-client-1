@@ -45,7 +45,7 @@ class Property:
         """
         type_string = self.get_base_type_string()
         if no_optional:
-            return self._type_string
+            return type_string
         if self.nullable:
             type_string = f"Optional[{type_string}]"
         if not self.required:

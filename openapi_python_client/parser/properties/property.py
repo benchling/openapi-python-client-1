@@ -41,7 +41,7 @@ class Property:
 
         Args:
             no_optional: Do not include Optional or Unset even if the value is optional (needed for isinstance checks)
-            query_arg: True if the property's type is being used for a query parameter
+            query_parameter: True if the property's type is being used for a query parameter
         """
         type_string = self.get_base_type_string()
         if no_optional:
@@ -82,7 +82,7 @@ class Property:
         How this should be declared in a dataclass
         
         Args:
-            query_arg: True if the property's type is being used for a query parameter
+            query_parameter: True if the property's type is being used for a query parameter
         """
         default: Optional[str]
         if self.default is not None:

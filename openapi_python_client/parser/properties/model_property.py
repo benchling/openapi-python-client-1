@@ -59,6 +59,8 @@ class ModelProperty(Property):
             )
             if isinstance(prop, PropertyError):
                 return prop
+            if isinstance(prop, ModelProperty):
+                prop.resolve_references(components, schemas)
             if required:
                 self.required_properties.append(prop)
                 # Remove the optional version

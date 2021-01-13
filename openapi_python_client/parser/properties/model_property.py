@@ -43,6 +43,7 @@ class ModelProperty(Property):
             for p, val in (referenced_prop.properties or {}).items():
                 props[p] = (val, source_name)
             for sub_prop in referenced_prop.allOf or []:
+                print("HERE!!!")
                 if isinstance(sub_prop, oai.Reference):
                     self.references.append(sub_prop)
                 else:
@@ -61,6 +62,7 @@ class ModelProperty(Property):
                 return prop
             if isinstance(prop, ModelProperty):
                 prop.resolve_references(components, schemas)
+
             if required:
                 self.required_properties.append(prop)
                 # Remove the optional version

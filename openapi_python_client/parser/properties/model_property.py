@@ -32,18 +32,19 @@ class ModelProperty(Property):
         self, components: Dict[str, Union[oai.Reference, oai.Schema]], schemas: Schemas
     ) -> Union[Schemas, PropertyError]:
         from ..properties import property_from_data
-
+        print(f"resolving references for {self.name}")
         required_set = set()
         props = {}
         while self.references:
             reference = self.references.pop()
             source_name = Reference.from_ref(reference.ref).class_name
             referenced_prop = components[source_name]
+            print(f"Found ref to {source_name=}")
+
             assert isinstance(referenced_prop, oai.Schema)
             for p, val in (referenced_prop.properties or {}).items():
                 props[p] = (val, source_name)
             for sub_prop in referenced_prop.allOf or []:
-                print("HERE!!!")
                 if isinstance(sub_prop, oai.Reference):
                     self.references.append(sub_prop)
                 else:
@@ -54,14 +55,16 @@ class ModelProperty(Property):
                     required_set.add(sub_prop_name)
 
         for key, (value, source_name) in (props or {}).items():
+            print(f"{key=} {value=}, {source_name=}")
             required = key in required_set
             prop, schemas = property_from_data(
                 name=key, required=required, data=value, schemas=schemas, parent_name=source_name
             )
             if isinstance(prop, PropertyError):
                 return prop
-            if isinstance(prop, ModelProperty):
-                prop.resolve_references(components, schemas)
+            # if isinstance(prop, ModelProperty):
+            #     print(f"Is ModelProperty {prop=}")
+            #     prop.resolve_references(components, schemas)
 
             if required:
                 self.required_properties.append(prop)

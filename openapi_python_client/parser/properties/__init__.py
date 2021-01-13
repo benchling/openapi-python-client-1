@@ -257,7 +257,7 @@ def build_model_property(
         class_name = f"{utils.pascal_case(parent_name)}{utils.pascal_case(class_name)}"
     ref = Reference.from_ref(class_name)
 
-    print(f"{class_name}: {data.properties=}, {data.allOf=}")
+    print(f"{class_name}: {data.allOf=}")
     all_props = data.properties or {}
     if not isinstance(data, oai.Reference) and data.allOf:
         for sub_prop in data.allOf:
@@ -269,13 +269,15 @@ def build_model_property(
 
     for key, value in all_props.items():
         prop_required = key in required_set
-        if not isinstance(value, oai.Reference) and value.allOf:
-            # resolved later
-            continue
+        print(f"Iterating through props, {key=}, {value=}")
+        # if not isinstance(value, oai.Reference) and value.allOf:
+        #     # resolved later
+        #     continue
         prop, schemas = property_from_data(
             name=key, required=prop_required, data=value, schemas=schemas, parent_name=class_name
         )
         if isinstance(prop, PropertyError):
+            print("prop err")
             return prop, schemas
         if prop_required and not prop.nullable:
             required_properties.append(prop)
@@ -464,7 +466,7 @@ def _property_from_data(
         )
     if data.anyOf or data.oneOf:
         return build_union_property(data=data, name=name, required=required, schemas=schemas, parent_name=parent_name)
-    if not data.type:
+    if not data.type and not data.allOf:
         return NoneProperty(name=name, required=required, nullable=False, default=None), schemas
 
     if data.type == "string":
@@ -501,7 +503,7 @@ def _property_from_data(
         )
     elif data.type == "array":
         return build_list_property(data=data, name=name, required=required, schemas=schemas, parent_name=parent_name)
-    elif data.type == "object":
+    elif data.type == "object" or data.allOf:
         return build_model_property(data=data, name=name, schemas=schemas, required=required, parent_name=parent_name)
     return PropertyError(data=data, detail=f"unknown type {data.type}"), schemas
 
@@ -514,6 +516,7 @@ def property_from_data(
     schemas: Schemas,
     parent_name: str,
 ) -> Tuple[Union[Property, PropertyError], Schemas]:
+    print(f"property_from_data, {name=}")
     try:
         return _property_from_data(name=name, required=required, data=data, schemas=schemas, parent_name=parent_name)
     except ValidationError:

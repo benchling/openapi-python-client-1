@@ -460,9 +460,6 @@ def _property_from_data(
         )
     if data.anyOf or data.oneOf:
         return build_union_property(data=data, name=name, required=required, schemas=schemas, parent_name=parent_name)
-    if not data.type:
-        return NoneProperty(name=name, required=required, nullable=False, default=None), schemas
-
     if data.type == "string":
         return _string_based_property(name=name, required=required, data=data), schemas
     elif data.type == "number":
@@ -497,8 +494,10 @@ def _property_from_data(
         )
     elif data.type == "array":
         return build_list_property(data=data, name=name, required=required, schemas=schemas, parent_name=parent_name)
-    elif data.type == "object":
+    elif data.type == "object" or data.allOf:
         return build_model_property(data=data, name=name, schemas=schemas, required=required, parent_name=parent_name)
+    elif not data.type:
+        return NoneProperty(name=name, required=required, nullable=False, default=None), schemas
     return PropertyError(data=data, detail=f"unknown type {data.type}"), schemas
 
 

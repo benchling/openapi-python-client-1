@@ -268,9 +268,6 @@ def build_model_property(
 
     for key, value in all_props.items():
         prop_required = key in required_set
-        if not isinstance(value, oai.Reference) and value.allOf:
-            # resolved later
-            continue
         prop, schemas = property_from_data(
             name=key, required=prop_required, data=value, schemas=schemas, parent_name=class_name
         )

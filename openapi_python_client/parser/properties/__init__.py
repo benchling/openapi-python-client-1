@@ -257,6 +257,7 @@ def build_model_property(
         class_name = f"{utils.pascal_case(parent_name)}{utils.pascal_case(class_name)}"
     ref = Reference.from_ref(class_name)
 
+    print(f"{class_name}: {data.properties=}, {data.allOf=}")
     all_props = data.properties or {}
     if not isinstance(data, oai.Reference) and data.allOf:
         for sub_prop in data.allOf:

@@ -181,7 +181,7 @@ def test_resolve_references_nested_allof(mocker):
 
     components = {**schemas, "Model": model_schema}
 
-    from openapi_python_client.parser.properties import Schemas
+    from openapi_python_client.parser.properties import ModelProperty, Schemas
 
     schemas_holder = Schemas()
     model, schemas_holder = build_model_property(
@@ -193,6 +193,8 @@ def test_resolve_references_nested_allof(mocker):
     assert all(not p.required for p in model.optional_properties)
 
     key_property = model.optional_properties[0]
+    assert isinstance(key_property, ModelProperty)
+    key_property.resolve_references(components, schemas_holder)
     assert sorted(p.name for p in key_property.required_properties) == ["DateTime", "Float", "String"]
     assert all(p.required for p in key_property.required_properties)
     assert sorted(p.name for p in key_property.optional_properties) == ["Enum", "Int"]

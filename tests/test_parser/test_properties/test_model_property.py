@@ -4,9 +4,9 @@ import pytest
 @pytest.mark.parametrize(
     "no_optional,nullable,required,expected",
     [
-        (False, False, False, "Union[MyClass, Unset]"),
+        (False, False, False, "Union[Unset, MyClass]"),
         (False, False, True, "MyClass"),
-        (False, True, False, "Union[Optional[MyClass], Unset]"),
+        (False, True, False, "Union[Unset, None, MyClass]"),
         (False, True, True, "Optional[MyClass]"),
         (True, False, False, "MyClass"),
         (True, False, True, "MyClass"),
@@ -176,7 +176,7 @@ def test_resolve_references_nested_allof(mocker):
                     ),
                 ]
             ),
-        }
+        },
     )
 
     components = {**schemas, "Model": model_schema}

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union, cast
+from typing import Any, Dict, List, Type, TypeVar, Union, cast
 
 import attr
 
@@ -7,12 +7,14 @@ from ..models.model_with_primitive_additional_properties_a_date_holder import (
 )
 from ..types import UNSET, Unset
 
+T = TypeVar("T", bound="ModelWithPrimitiveAdditionalProperties")
+
 
 @attr.s(auto_attribs=True)
 class ModelWithPrimitiveAdditionalProperties:
     """  """
 
-    a_date_holder: Union[ModelWithPrimitiveAdditionalPropertiesADateHolder, Unset] = UNSET
+    a_date_holder: Union[Unset, ModelWithPrimitiveAdditionalPropertiesADateHolder] = UNSET
     additional_properties: Dict[str, str] = attr.ib(init=False, factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -28,17 +30,17 @@ class ModelWithPrimitiveAdditionalProperties:
 
         return field_dict
 
-    @staticmethod
-    def from_dict(src_dict: Dict[str, Any]) -> "ModelWithPrimitiveAdditionalProperties":
+    @classmethod
+    def from_dict(cls: Type[T], src_dict: Dict[str, Any]) -> T:
         d = src_dict.copy()
-        a_date_holder: Union[ModelWithPrimitiveAdditionalPropertiesADateHolder, Unset] = UNSET
+        a_date_holder: Union[Unset, ModelWithPrimitiveAdditionalPropertiesADateHolder] = UNSET
         _a_date_holder = d.pop("a_date_holder", UNSET)
         if _a_date_holder is not None and not isinstance(_a_date_holder, Unset):
             a_date_holder = ModelWithPrimitiveAdditionalPropertiesADateHolder.from_dict(
                 cast(Dict[str, Any], _a_date_holder)
             )
 
-        model_with_primitive_additional_properties = ModelWithPrimitiveAdditionalProperties(
+        model_with_primitive_additional_properties = cls(
             a_date_holder=a_date_holder,
         )
 

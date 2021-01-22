@@ -124,16 +124,8 @@ class ListProperty(Property, Generic[InnerProp]):
     inner_property: InnerProp
     template: ClassVar[str] = "list_property.pyi"
 
-    def get_type_string(self, no_optional: bool = False) -> str:
-        """ Get a string representation of type that should be used when declaring this property """
-        type_string = f"List[{self.inner_property.get_type_string()}]"
-        if no_optional:
-            return type_string
-        if self.nullable:
-            type_string = f"Optional[{type_string}]"
-        if not self.required:
-            type_string = f"Union[Unset, {type_string}]"
-        return type_string
+    def get_base_type_string(self) -> str:
+        return f"List[{self.inner_property.get_type_string()}]"
 
     def get_instance_type_string(self) -> str:
         """Get a string representation of runtime type that should be used for `isinstance` checks"""
@@ -167,18 +159,37 @@ class UnionProperty(Property):
             self, "has_properties_without_templates", any(prop.template is None for prop in self.inner_properties)
         )
 
-    def get_type_string(self, no_optional: bool = False) -> str:
-        """ Get a string representation of type that should be used when declaring this property """
+    def _get_inner_prop_string(self) -> str:
         inner_types = [p.get_type_string(no_optional=True) for p in self.inner_properties]
-        inner_prop_string = ", ".join(inner_types)
-        type_string = f"Union[{inner_prop_string}]"
+        return ", ".join(inner_types)
+
+    def get_base_type_string(self) -> str:
+        return f"Union[{self._get_inner_prop_string()}]"
+
+    def get_type_string(self, no_optional: bool = False, query_parameter: bool = False) -> str:
+        """
+        Get a string representation of type that should be used when declaring this property.
+
+        This implementation differs slightly from `Property.get_type_string` in order to collapse
+        nested union types.
+        """
+        type_string = self.get_base_type_string()
         if no_optional:
             return type_string
-        if not self.required:
-            type_string = f"Union[Unset, {inner_prop_string}]"
-        if self.nullable:
-            type_string = f"Optional[{type_string}]"
-        return type_string
+        if self.required:
+            if self.nullable:
+                return f"Union[None, {self._get_inner_prop_string()}]"
+            else:
+                return type_string
+        else:
+            if self.nullable:
+                return f"Union[Unset, None, {self._get_inner_prop_string()}]"
+            else:
+                if query_parameter:
+                    # For query parameters, None has the same meaning as Unset
+                    return f"Union[Unset, None, {self._get_inner_prop_string()}]"
+                else:
+                    return f"Union[Unset, {self._get_inner_prop_string()}]"
 
     def get_imports(self, *, prefix: str) -> Set[str]:
         """

@@ -1,8 +1,19 @@
+from enum import Enum
 from typing import ClassVar, Optional, Set
 
 import attr
 
 from ... import utils
+
+
+class Style(Enum):
+    MATRIX = "matrix"
+    LABEL = "label"
+    FORM = "form"
+    SIMPLE = "simple"
+    SPACE_DELIMITED = "spaceDelimited"
+    PIPE_DELIMITED = "pipeDelimited"
+    DEEP_OBJECT = "deepObject"
 
 
 @attr.s(auto_attribs=True, frozen=True)
@@ -23,13 +34,14 @@ class Property:
     name: str
     required: bool
     nullable: bool
+    style: Optional[Style]
+    explode: Optional[bool]
     _type_string: ClassVar[str] = ""
     _json_type_string: ClassVar[str] = ""  # Type of the property after JSON serialization
     default: Optional[str] = attr.ib()
     python_name: str = attr.ib(init=False)
 
     template: ClassVar[Optional[str]] = None
-    explode: bool
 
     def __attrs_post_init__(self) -> None:
         object.__setattr__(self, "python_name", utils.to_valid_python_identifier(utils.snake_case(self.name)))

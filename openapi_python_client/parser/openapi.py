@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from .. import schema as oai
 from .. import utils
 from .errors import GeneratorError, ParseError, PropertyError
-from .properties import EnumProperty, ModelProperty, Property, Schemas, build_schemas, property_from_data
+from .properties import EnumProperty, ModelProperty, Property, Schemas, Style, build_schemas, property_from_data
 from .reference import Reference
 from .responses import Response, response_from_data
 
@@ -19,6 +19,24 @@ class ParameterLocation(str, Enum):
     QUERY = "query"
     PATH = "path"
     HEADER = "header"
+
+
+def default_style(parameter_location: ParameterLocation) -> Style:
+    if parameter_location == ParameterLocation.QUERY:
+        return Style.FORM
+    elif parameter_location == ParameterLocation.PATH:
+        return Style.SIMPLE
+    elif parameter_location == ParameterLocation.HEADER:
+        return Style.SIMPLE
+    else:
+        raise ValueError(f'Invalid or unsupported value for "in": "{parameter_location}"')
+
+
+def default_explode(style: Style) -> bool:
+    if style == Style.FORM:
+        return True
+    else:
+        return False
 
 
 def import_string_from_reference(reference: Reference, prefix: str = "") -> str:
@@ -203,6 +221,8 @@ class Endpoint:
                 data=param.param_schema,
                 schemas=schemas,
                 parent_name=endpoint.name,
+                style=Style(param.style) if param.style else default_style(ParameterLocation(param.param_in)),
+                explode=param.explode,
             )
             if isinstance(prop, ParseError):
                 return ParseError(detail=f"cannot parse parameter of endpoint {endpoint.name}", data=prop.data), schemas

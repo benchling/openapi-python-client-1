@@ -1050,7 +1050,9 @@ def test_build_enums(mocker):
         (False, False),
         (
             oai.Schema.construct(type="string"),
-            StringProperty(name="AdditionalProperty", required=True, nullable=False, default=None),
+            StringProperty(
+                name="AdditionalProperty", required=True, nullable=False, default=None, style=None, explode=None
+            ),
         ),
     ],
 )

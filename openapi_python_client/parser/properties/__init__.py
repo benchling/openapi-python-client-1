@@ -466,6 +466,23 @@ def build_list_property(
     )
 
 
+def _property_from_ref(
+    name: str,
+    required: bool,
+    nullable: bool,
+    data: oai.Reference,
+    schemas: Schemas,
+) -> Tuple[Union[Property, PropertyError], Schemas]:
+    reference = Reference.from_ref(data.ref)
+    existing = schemas.enums.get(reference.class_name) or schemas.models.get(reference.class_name)
+    if existing:
+        return (
+            attr.evolve(existing, required=required, name=name, nullable=nullable),
+            schemas,
+        )
+    return PropertyError(data=data, detail="Could not find reference in parsed models or enums"), schemas
+
+
 def _property_from_data(
     name: str,
     required: bool,
@@ -476,14 +493,11 @@ def _property_from_data(
     """ Generate a Property from the OpenAPI dictionary representation of it """
     name = utils.remove_string_escapes(name)
     if isinstance(data, oai.Reference):
-        reference = Reference.from_ref(data.ref)
-        existing = schemas.enums.get(reference.class_name) or schemas.models.get(reference.class_name)
-        if existing:
-            return (
-                attr.evolve(existing, required=required, name=name),
-                schemas,
-            )
-        return PropertyError(data=data, detail="Could not find reference in parsed models or enums"), schemas
+        return _property_from_ref(name=name, required=required, nullable=False, data=data, schemas=schemas)
+
+    if data.allOf and len(data.allOf) == 1 and isinstance(data.allOf[0], oai.Reference):
+        return _property_from_ref(name=name, required=required, nullable=data.nullable, data=data.allOf[0], schemas=schemas)
+
     if data.enum:
         return build_enum_property(
             data=data, name=name, required=required, schemas=schemas, enum=data.enum, parent_name=parent_name

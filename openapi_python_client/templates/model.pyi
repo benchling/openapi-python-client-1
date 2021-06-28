@@ -140,35 +140,25 @@ Optional[{{prop.get_base_type_string()}}]
 {% endmacro %}
 
     {% if model.additional_properties %}
-    def get(self, key, default:Optional[{{ additional_property_type }}]=None) -> Optional[{{ additional_property_type }}]:
+    def get(self, key, default=None) -> Optional[{{ additional_property_type }}]:
         return self._additional_properties.get(key, default)
     {% endif %}
 
     {% for property in model.required_properties + model.optional_properties %}
-    {% if property.required %}
+        {% set backing_member = "self._" + property.python_name %}
+        {% if property.required %}
     @property
     def {{property.python_name}}(self) -> {{required_property_type(property)}}:
-        return self._{{property.python_name}}
-    {% else %}
+        return {{backing_member}}
+        {% else %}
     @property
     def {{property.python_name}}(self) -> {{required_property_type(property)}}:
         if isinstance(self._{{property.python_name}}, Unset):
             raise NotPresentError(self, "{{property.python_name}}")
-        return self._{{property.python_name}}
-    {% endif %}
+        return {{backing_member}}
+        {% endif %}
 
-    {#
-        The ifs are split here because if you don't put your setter right next to your getter, mypy complains with a
-        completely unhelpful error message.
-    #}
     @{{property.python_name}}.setter
     def {{property.python_name}}(self, value:{{property.get_type_string()}}):
-        self._{{property.python_name}} = value
-
-    {% if not property.required %}
-    @property
-    def {{property.python_name}}_is_set(self) -> bool:
-        return not isinstance(self._{{property.python_name}}, Unset)
-    {% endif %}
-
+        {{backing_member}} = value
     {% endfor %}

@@ -159,12 +159,12 @@ Optional[{{prop.get_base_type_string()}}]
         {% endif %}
 
     @{{property.python_name}}.setter
-    def {{property.python_name}}(self, value:{{required_property_type(property)}}):
+    def {{property.python_name}}(self, value:{{required_property_type(property)}}) -> None:
         {{backing_member}} = value
 
         {% if not property.required %}
     @{{property.python_name}}.deleter
-    def {{property.python_name}}(self):
+    def {{property.python_name}}(self) -> None:
         {{backing_member}} = UNSET
         {% endif %}
     {% endfor %}

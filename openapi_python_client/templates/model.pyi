@@ -35,7 +35,7 @@ class {{ model.reference.class_name }}:
     {% endif %}
     {% endfor %}
     {% if model.additional_properties %}
-    _additional_properties: Dict[str, {{ additional_property_type }}] = attr.ib(init=False, factory=dict)
+    additional_properties: Dict[str, {{ additional_property_type }}] = attr.ib(init=False, factory=dict)
     {% endif %}
 
 
@@ -53,10 +53,10 @@ class {{ model.reference.class_name }}:
         {% if model.additional_properties %}
         {% if model.additional_properties.template %}
         {% from "property_templates/" + model.additional_properties.template import transform %}
-        for prop_name, prop in self._additional_properties.items():
+        for prop_name, prop in self.additional_properties.items():
             {{ transform(model.additional_properties, "prop", "field_dict[prop_name]") | indent(12) }}
         {% else %}
-        field_dict.update(self._additional_properties)
+        field_dict.update(self.additional_properties)
         {% endif %}
         {% endif %}
         field_dict.update({
@@ -106,9 +106,9 @@ class {{ model.reference.class_name }}:
             {{ construct(model.additional_properties, "prop_dict") | indent(12) }}
             additional_properties[prop_name] = {{ model.additional_properties.python_name }}
 
-        {{model.reference.module_name}}._additional_properties = additional_properties
+        {{model.reference.module_name}}.additional_properties = additional_properties
     {% else %}
-        {{model.reference.module_name}}._additional_properties = d
+        {{model.reference.module_name}}.additional_properties = d
     {% endif %}
 {% endif %}
         return {{model.reference.module_name}}
@@ -116,19 +116,19 @@ class {{ model.reference.class_name }}:
     {% if model.additional_properties %}
     @property
     def additional_keys(self) -> List[str]:
-        return list(self._additional_properties.keys())
+        return list(self.additional_properties.keys())
 
     def __getitem__(self, key: str) -> {{ additional_property_type }}:
-        return self._additional_properties[key]
+        return self.additional_properties[key]
 
     def __setitem__(self, key: str, value: {{ additional_property_type }}) -> None:
-        self._additional_properties[key] = value
+        self.additional_properties[key] = value
 
     def __delitem__(self, key: str) -> None:
-        del self._additional_properties[key]
+        del self.additional_properties[key]
 
     def __contains__(self, key: str) -> bool:
-        return key in self._additional_properties
+        return key in self.additional_properties
     {% endif %}
 
 {% macro required_property_type(prop) %}
@@ -141,7 +141,7 @@ Optional[{{prop.get_base_type_string()}}]
 
     {% if model.additional_properties %}
     def get(self, key, default=None) -> Optional[{{ additional_property_type }}]:
-        return self._additional_properties.get(key, default)
+        return self.additional_properties.get(key, default)
     {% endif %}
 
     {% for property in model.required_properties + model.optional_properties %}
@@ -153,7 +153,7 @@ Optional[{{prop.get_base_type_string()}}]
         {% else %}
     @property
     def {{property.python_name}}(self) -> {{required_property_type(property)}}:
-        if isinstance(self._{{property.python_name}}, Unset):
+        if isinstance({{backing_member}}, Unset):
             raise NotPresentError(self, "{{property.python_name}}")
         return {{backing_member}}
         {% endif %}
